@@ -1,0 +1,43 @@
+{
+  "location_name": "Madrona Beach",
+  "location_detail": "Camano Island, Washington",
+  "timezone": "America/Los_Angeles",
+  "forecast_days": 5,
+  "repository": "DareGreatly1/madrona-tides",
+  "tide": {
+    "station_id": "9447929",
+    "datum": "MLLW",
+    "units": "english"
+  },
+  "weather": {
+    "station_id": "KNUW",
+    "label": "Ault Field / NAS Whidbey (KNUW)",
+    "latitude": 48.3518,
+    "longitude": -122.6554
+  },
+  "pressure": {
+    "reference_mb": 1013.21,
+    "inches_per_mb": 0.3937
+  },
+  "wind": {
+    "inches_per_10_mph": 4.0,
+    "use_gust": false
+  },
+  "river": {
+    "usgs_site": "12200500",
+    "nws_lid": "MVEW1",
+    "baseline_ft": 20.0,
+    "inches_per_foot_above_baseline": 1.2,
+    "flood_stage_ft": 28.0
+  },
+  "pilings": {
+    "step_count": 10,
+    "feet_at_lowest_step": 10.0,
+    "inches_between_steps": 12.0
+  },
+  "flood": {
+    "likely_flood_ft": 14.0,
+    "photographed_flood_ft": 15.0,
+    "basis": "Both photographed floods left 5 of 10 piling steps showing, which the owner's scale reads as 15.0 ft. Likely flooding is flagged at 14.0 ft, one foot below that photographed height, because the water was already over the berm in those photos and this formula is only a rough fit."
+  }
+}
