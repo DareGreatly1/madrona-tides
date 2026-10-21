@@ -78,6 +78,8 @@ The workflow has to be on `main`, and Pages has to use the Actions source. In th
 
 Then open **Actions → Daily forecast → Run workflow**. The live URL is printed on that run and is [https://daregreatly1.github.io/madrona-tides/](https://daregreatly1.github.io/madrona-tides/).
 
+If the “Commit the forecast history” step fails and says the token cannot push, set **Settings → Actions → General → Workflow permissions → Read and write permissions** and run the workflow again. The page can still deploy without that step; the history file in the repo will not update until the push is allowed.
+
 ## Backtest
 
 `python scripts/backtest.py` rebuilds [`data/backtest.json`](data/backtest.json) from NOAA predictions, the KNUW hourly archive (Iowa Environmental Mesonet), and the USGS gauge. The page recomputes both events with the current coefficients.
