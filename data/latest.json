@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T10:36:59.577823-07:00",
+  "generated_at": "2026-10-22T11:06:49.883475-07:00",
   "run_date": "2026-10-22",
   "station_name": "Coupeville, Penn Cove, Whidbey Island",
   "warnings": [],
@@ -17,17 +17,17 @@
       "wind_dir_deg": 0.0,
       "wind_compass": "N",
       "wind_gust_mph": null,
-      "text": "Fog/Mist"
+      "text": ""
     },
     "usgs": {
-      "time": "2026-10-22T10:15:00-07:00",
+      "time": "2026-10-22T10:45:00-07:00",
       "stage_ft": 11.04,
       "flow_cfs": 7470.0
     }
   },
   "tides": [
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-22T02:52:00-07:00",
       "predicted_tide_ft": "8.4250",
@@ -43,7 +43,7 @@
       "wind_source": "NWS forecast at Madrona Beach (SEW 124,98)",
       "river_ft": "11.0400",
       "river_source": "USGS 12200500 current reading",
-      "river_time": "2026-10-22T10:15:00-07:00",
+      "river_time": "2026-10-22T10:45:00-07:00",
       "river_adjust_in": "0.0000",
       "predicted_actual_ft": "8.5466",
       "steps_showing_est": "11.4534",
@@ -52,13 +52,13 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-22T15:28:00-07:00",
       "predicted_tide_ft": "11.0980",
-      "pressure_mb": "1015.5800",
+      "pressure_mb": "1015.4333",
       "pressure_source": "Open-Meteo sea-level pressure forecast at Madrona Beach",
-      "pressure_adjust_in": "-0.9331",
+      "pressure_adjust_in": "-0.8753",
       "wind_mph": "8.0555",
       "wind_dir_deg": "340.0000",
       "wind_compass": "NNW",
@@ -70,20 +70,20 @@
       "river_source": "MVEW1 forecast",
       "river_time": "2026-10-22T15:28:00-07:00",
       "river_adjust_in": "0.0000",
-      "predicted_actual_ft": "11.1121",
-      "steps_showing_est": "8.8879",
+      "predicted_actual_ft": "11.1169",
+      "steps_showing_est": "8.8831",
       "likely_flood": "no",
       "flood_threshold_ft": "14.00",
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-23T03:48:00-07:00",
       "predicted_tide_ft": "9.1540",
-      "pressure_mb": "1021.7000",
+      "pressure_mb": "1021.7600",
       "pressure_source": "Open-Meteo sea-level pressure forecast at Madrona Beach",
-      "pressure_adjust_in": "-3.3425",
+      "pressure_adjust_in": "-3.3661",
       "wind_mph": "6.9047",
       "wind_dir_deg": "310.0000",
       "wind_compass": "NW",
@@ -95,14 +95,14 @@
       "river_source": "MVEW1 forecast",
       "river_time": "2026-10-23T03:48:00-07:00",
       "river_adjust_in": "0.0000",
-      "predicted_actual_ft": "9.0518",
-      "steps_showing_est": "10.9482",
+      "predicted_actual_ft": "9.0498",
+      "steps_showing_est": "10.9502",
       "likely_flood": "no",
       "flood_threshold_ft": "14.00",
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-23T15:50:00-07:00",
       "predicted_tide_ft": "11.3000",
@@ -127,7 +127,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-24T04:38:00-07:00",
       "predicted_tide_ft": "9.9470",
@@ -152,7 +152,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-24T16:13:00-07:00",
       "predicted_tide_ft": "11.4840",
@@ -177,7 +177,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-25T05:27:00-07:00",
       "predicted_tide_ft": "10.7230",
@@ -202,7 +202,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-25T16:39:00-07:00",
       "predicted_tide_ft": "11.6230",
@@ -227,7 +227,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-26T06:16:00-07:00",
       "predicted_tide_ft": "11.3950",
@@ -252,7 +252,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-26T17:07:00-07:00",
       "predicted_tide_ft": "11.6820",
@@ -277,7 +277,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-27T07:06:00-07:00",
       "predicted_tide_ft": "11.8780",
@@ -302,7 +302,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T10:36:59.577823-07:00",
+      "run_generated_at": "2026-10-22T11:06:49.883475-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-27T17:39:00-07:00",
       "predicted_tide_ft": "11.6220",
