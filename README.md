@@ -16,7 +16,7 @@ Coefficients are all in [`config.json`](config.json). Change those numbers and r
 
 1. **Tide.** NOAA predicted high tide, station `9447929` (Coupeville, Penn Cove), datum MLLW, feet.
 2. **Pressure.** Add `0.3937` inches of water for every millibar that sea-level pressure is below `1013.21`, and subtract the same amount when pressure is higher. That is the owner's formula `((mb - 1013.21) × -0.3937)`.
-3. **Westerly wind.** Add `4` inches for every `10` mph of the westerly component at Ault Field / NAS Whidbey (KNUW).
+3. **Westerly wind.** Add `4` inches for every `10` mph of the westerly component in the forecast at Madrona Beach, 279 Alder St, Camano Island, WA 98282.
 4. **Skagit River.** Add `1.2` inches for every foot the Mount Vernon gauge (USGS `12200500`) is above `20` ft. At or below 20 ft the river term is zero. Flood stage is 28 ft.
 
 The four pieces are added, and the result is the predicted actual height. Each high tide for about the next five days is listed with the tide and the three adjustments.
@@ -36,7 +36,13 @@ westerly mph = max(0, -speed × sin(direction))
 - Wind from the south, east, or southeast adds nothing. It is not subtracted. Madrona faces west onto Saratoga Passage, and the notes only add water for wind from the west.
 - The sustained wind is used. Gusts are shown on the page and are not added.
 
-Wind speed and direction come from the [api.weather.gov](https://api.weather.gov/) forecast grid for the KNUW coordinates. The National Weather Service grid for this point does not currently publish pressure, so the sea-level pressure forecast is the Open-Meteo value at those same coordinates. If a high tide is within two hours of the latest KNUW observation, that observed sea-level pressure is used instead. If the NWS grid starts publishing pressure, the build uses that automatically.
+Forecast wind and sea-level pressure are for the beach, not for the airport. The coordinates are in `config.json`: latitude `48.221356`, longitude `-122.533162` (279 Alder St, Camano Island, WA 98282).
+
+Wind speed and direction come from the [api.weather.gov](https://api.weather.gov/) forecast grid for that point (office SEW, grid 124,98). If that grid has no wind, the build uses the NWS hourly forecast at the same point. If that is also empty, it uses the KNUW grid and the page says the wind is from Ault Field.
+
+The National Weather Service grid for the beach does not currently publish pressure, so the sea-level pressure forecast is the Open-Meteo value at the beach coordinates. If Open-Meteo fails there, the build uses Open-Meteo at the KNUW coordinates and labels that fallback. If the beach grid starts publishing pressure, the build uses that automatically.
+
+KNUW (Ault Field / NAS Whidbey) is still the closest official station, about 11 miles from the beach. A high tide within two hours of the latest KNUW observation uses that observed sea-level pressure instead of the forecast. The historical backtest also stays on the KNUW archive. The page labels this as forecast at Madrona Beach, observations from Ault Field.
 
 The Skagit height for a future high tide is the [National Water Prediction Service](https://api.water.noaa.gov/nwps/v1/gauges/MVEW1/stageflow) forecast for gauge `MVEW1` when the forecast covers that time. Otherwise the page uses the current USGS reading and says so.
 
@@ -84,7 +90,7 @@ If the “Commit the forecast history” step fails and says the token cannot pu
 
 ## Backtest
 
-`python scripts/backtest.py` rebuilds [`data/backtest.json`](data/backtest.json) from NOAA predictions, the KNUW hourly archive (Iowa Environmental Mesonet), and the USGS gauge. The page recomputes both events with the current coefficients.
+`python scripts/backtest.py` rebuilds [`data/backtest.json`](data/backtest.json) from NOAA predictions, the Ault Field / KNUW hourly archive (Iowa Environmental Mesonet), and the USGS gauge. Those historical hours stay on KNUW, the closest official station. The page recomputes both events with the current coefficients. The forecast on the main page is separate: it uses the beach coordinates.
 
 The owner's spreadsheet and the retrieved observations are both shown. With the original coefficients:
 
@@ -114,8 +120,9 @@ Open `site/index.html`.
 ## Sources
 
 - [NOAA CO-OPS tide predictions, station 9447929](https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9447929)
-- [NWS forecast](https://api.weather.gov/) at KNUW, and the [latest KNUW observation](https://api.weather.gov/stations/KNUW/observations/latest)
-- [Open-Meteo](https://open-meteo.com/) sea-level pressure when the NWS grid has none
+- [NWS forecast grid for Madrona Beach](https://api.weather.gov/points/48.221356,-122.533162) (279 Alder St, Camano Island, WA 98282)
+- [Latest Ault Field (KNUW) observation](https://api.weather.gov/stations/KNUW/observations/latest), about 11 miles from the beach, used for a high tide within two hours and for the historical backtest
+- [Open-Meteo](https://open-meteo.com/) sea-level pressure at the beach when the NWS grid has none
 - [USGS 12200500](https://waterdata.usgs.gov/monitoring-location/12200500/), Skagit River near Mount Vernon
 - [NWS river forecast MVEW1](https://water.noaa.gov/gauges/mvew1)
-- Historical KNUW wind and pressure for the backtest: Iowa Environmental Mesonet ASOS archive
+- Historical Ault Field wind and pressure for the backtest: Iowa Environmental Mesonet ASOS archive, station NUW

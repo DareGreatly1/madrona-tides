@@ -137,6 +137,120 @@ def pressure_series_from_grid(block: dict) -> list[tuple[datetime, float]]:
     return series
 
 
+def grid_code(grid: dict) -> str:
+    return f"{grid['grid_id']} {grid['grid_x']},{grid['grid_y']}"
+
+
+def wind_from_grid(grid: dict) -> tuple[list, list, list] | None:
+    props = grid["properties"]
+    speeds = wind_intervals(props.get("windSpeed") or {})
+    directions = direction_intervals(props.get("windDirection") or {})
+    gusts = wind_intervals(props.get("windGust") or {})
+    if speeds and directions:
+        return speeds, directions, gusts
+    return None
+
+
+def resolve_forecast_wind(cfg: dict, beach_grid: dict | None) -> tuple[list, list, list, str, dict, list[str]]:
+    """Wind at the beach, then the hourly forecast there, then the KNUW grid."""
+    forecast = cfg["weather"]["forecast"]
+    observation = cfg["weather"]["observation"]
+    place = forecast["label"]
+    notes: list[str] = []
+
+    if beach_grid is not None:
+        parsed = wind_from_grid(beach_grid)
+        if parsed is not None:
+            speeds, directions, gusts = parsed
+            source = f"NWS forecast at {place} ({grid_code(beach_grid)})"
+            return speeds, directions, gusts, source, beach_grid, notes
+        hourly_url = beach_grid.get("forecast_url")
+        if hourly_url:
+            try:
+                periods = fetchers.fetch_nws_hourly(hourly_url)
+                hourly = fetchers.hourly_wind_intervals(periods)
+            except fetchers.FetchError as exc:
+                notes.append(f"The NWS hourly forecast at {place} was unavailable ({exc}).")
+            else:
+                if hourly["speeds"] and hourly["directions"]:
+                    notes.append(
+                        f"The NWS grid for {place} did not include wind speed and direction, "
+                        "so the hourly forecast at that same point is used."
+                    )
+                    source = f"NWS hourly forecast at {place} ({grid_code(beach_grid)})"
+                    return hourly["speeds"], hourly["directions"], hourly["gusts"], source, beach_grid, notes
+                notes.append(f"The NWS hourly forecast at {place} did not include wind speed and direction.")
+        else:
+            notes.append(f"The NWS grid for {place} did not include wind speed and direction.")
+
+    station = observation["label"]
+    try:
+        fallback = fetchers.fetch_nws_grid(observation["latitude"], observation["longitude"])
+    except fetchers.FetchError as exc:
+        raise fetchers.FetchError(
+            f"NWS wind was unavailable at {place} and at {station} ({exc})."
+        ) from exc
+    parsed = wind_from_grid(fallback)
+    if parsed is None:
+        raise fetchers.FetchError(
+            f"NWS wind was missing at {place} and the {station} grid also had no wind speed and direction."
+        )
+    notes.append(
+        f"Forecast wind is from {observation['short_label']} ({grid_code(fallback)}) "
+        f"because the {place} forecast had no wind."
+    )
+    speeds, directions, gusts = parsed
+    source = (
+        f"NWS forecast at {observation['short_label']} ({grid_code(fallback)}), "
+        f"because the {place} forecast had no wind"
+    )
+    return speeds, directions, gusts, source, fallback, notes
+
+
+def resolve_forecast_pressure(cfg: dict, beach_grid: dict | None) -> tuple[list, str, str]:
+    """Pressure at the beach grid, then Open-Meteo at the beach, then Open-Meteo at KNUW."""
+    forecast = cfg["weather"]["forecast"]
+    observation = cfg["weather"]["observation"]
+    place = forecast["label"]
+    props = (beach_grid or {}).get("properties") or {}
+    nws_pressure = pressure_series_from_grid(props.get("pressure") or {})
+    if nws_pressure:
+        return (
+            nws_pressure,
+            f"NWS sea-level pressure forecast at {place}",
+            f"Sea-level pressure is the NWS grid forecast at {place}.",
+        )
+    try:
+        points = fetchers.fetch_open_meteo_pressure(forecast["latitude"], forecast["longitude"])
+    except fetchers.FetchError as exc:
+        try:
+            points = fetchers.fetch_open_meteo_pressure(
+                observation["latitude"], observation["longitude"],
+            )
+        except fetchers.FetchError as fallback_exc:
+            raise fetchers.FetchError(
+                f"Sea-level pressure was unavailable at {place} ({exc}) "
+                f"and at {observation['label']} ({fallback_exc})."
+            ) from fallback_exc
+        return (
+            points,
+            f"Open-Meteo sea-level pressure forecast at {observation['short_label']}",
+            (
+                f"Open-Meteo at {place} was unavailable ({exc}). "
+                f"Sea-level pressure is the Open-Meteo forecast at {observation['label']}."
+            ),
+        )
+    address = forecast.get("address") or place
+    return (
+        points,
+        f"Open-Meteo sea-level pressure forecast at {place}",
+        (
+            f"The NWS forecast grid for {place} did not include pressure. "
+            f"Sea-level pressure is the Open-Meteo forecast at {address}."
+        ),
+    )
+
+
 def observation_snapshot(props: dict | None, zone: ZoneInfo) -> dict:
     if not props:
         return {}
@@ -171,29 +285,26 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
     )
     station_name = fetchers.fetch_station_name(cfg["tide"]["station_id"])
 
-    weather = cfg["weather"]
-    grid = fetchers.fetch_nws_grid(weather["latitude"], weather["longitude"])
-    props = grid["properties"]
-    speeds = wind_intervals(props.get("windSpeed") or {})
-    directions = direction_intervals(props.get("windDirection") or {})
-    gusts = wind_intervals(props.get("windGust") or {})
-    if not speeds or not directions:
-        raise fetchers.FetchError("NWS wind forecast did not include speed and direction")
+    forecast = cfg["weather"]["forecast"]
+    observation = cfg["weather"]["observation"]
+    beach_grid = None
+    try:
+        beach_grid = fetchers.fetch_nws_grid(forecast["latitude"], forecast["longitude"])
+    except fetchers.FetchError as exc:
+        warnings.append(f"The NWS forecast grid for {forecast['label']} was unavailable ({exc}).")
 
-    nws_pressure = pressure_series_from_grid(props.get("pressure") or {})
-    if nws_pressure:
-        pressure_points = nws_pressure
-        pressure_note = "Sea-level pressure forecast is the NWS grid pressure, converted to millibars."
-        forecast_pressure_source = "NWS grid pressure"
-    else:
-        pressure_points = fetchers.fetch_open_meteo_pressure(weather["latitude"], weather["longitude"])
-        pressure_note = (
-            "The NWS forecast grid for this point did not include pressure. "
-            "Sea-level pressure is the Open-Meteo forecast at the KNUW coordinates."
-        )
-        forecast_pressure_source = "Open-Meteo sea-level pressure at KNUW"
+    speeds, directions, gusts, wind_source, wind_grid, wind_notes = resolve_forecast_wind(cfg, beach_grid)
+    warnings.extend(wind_notes)
+    pressure_points, forecast_pressure_source, pressure_note = resolve_forecast_pressure(cfg, beach_grid)
+    pressure_note += (
+        f" A high tide within two hours of the latest {observation['short_label']} "
+        f"({observation['station_id']}) observation uses that observed sea-level pressure instead."
+    )
 
-    knuw = observation_snapshot(fetchers.fetch_knuw_observation(), zone)
+    knuw = observation_snapshot(
+        fetchers.fetch_station_observation(observation["station_id"]),
+        zone,
+    )
     try:
         usgs = fetchers.fetch_usgs_series(cfg["river"]["usgs_site"])
     except fetchers.FetchError as exc:
@@ -261,7 +372,9 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
             and abs(when - obs_time) <= timedelta(hours=2)
         ):
             pressure_mb = obs_pressure
-            pressure_source = "KNUW observed sea-level pressure"
+            pressure_source = (
+                f"{observation['short_label']} ({observation['station_id']}) observed sea-level pressure"
+            )
         else:
             pressure_mb = fetchers.pressure_at(pressure_points, when)
 
@@ -299,7 +412,7 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
             "wind_gust_mph": gust_mph,
             "westerly_mph": result.get("westerly_mph"),
             "wind_adjust_in": result.get("wind_adjust_in"),
-            "wind_source": f"NWS grid {grid['grid_id']} {grid['grid_x']},{grid['grid_y']}",
+            "wind_source": wind_source,
             "river_ft": river_ft,
             "river_source": river_source,
             "river_time": river_time,
@@ -315,8 +428,9 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
     tides.sort(key=lambda item: item["time"])
     current = {
         "station_name": station_name,
-        "grid": f"{grid['grid_id']} {grid['grid_x']},{grid['grid_y']}",
+        "grid": grid_code(wind_grid),
         "pressure_note": pressure_note,
+        "wind_note": wind_source if wind_source.endswith(".") else wind_source + ".",
         "river_note": river_note,
         "knuw": knuw,
         "usgs": {
@@ -339,6 +453,7 @@ def serializable_conditions(current: dict) -> dict:
         "station_name": current.get("station_name"),
         "grid": current.get("grid"),
         "pressure_note": current.get("pressure_note"),
+        "wind_note": current.get("wind_note"),
         "river_note": current.get("river_note"),
         "knuw": knuw,
         "usgs": usgs,

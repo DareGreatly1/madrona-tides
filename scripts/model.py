@@ -49,6 +49,16 @@ def compass(direction_deg: float | None) -> str:
     return COMPASS_16[index]
 
 
+def degrees_from_compass(label: str | None) -> float | None:
+    """Meteorological degrees for a 16-point compass label such as WNW."""
+    if not label:
+        return None
+    key = label.strip().upper()
+    if key not in COMPASS_16:
+        return None
+    return COMPASS_16.index(key) * 22.5
+
+
 def westerly_component_mph(speed_mph: float, direction_from_deg: float) -> float:
     """How many mph of the wind is coming from the west."""
     radians = math.radians(direction_from_deg % 360.0)

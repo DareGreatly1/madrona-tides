@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import fetchers
 import model
 import render
 
@@ -45,6 +46,36 @@ class RefreshMarkupTests(unittest.TestCase):
         self.assertIn("history.replaceState", self.page)
         self.assertIn('visibilityState === "hidden"', self.page)
         self.assertIn("sessionStorage", self.page)
+
+    def test_forecast_is_the_beach_and_observations_stay_at_ault_field(self):
+        cfg = model.load_config()
+        forecast = cfg["weather"]["forecast"]
+        observation = cfg["weather"]["observation"]
+        self.assertEqual(forecast["address"], "279 Alder St, Camano Island, WA 98282")
+        self.assertAlmostEqual(forecast["latitude"], 48.221356)
+        self.assertAlmostEqual(forecast["longitude"], -122.533162)
+        self.assertEqual(observation["station_id"], "KNUW")
+        self.assertAlmostEqual(observation["latitude"], 48.3518)
+        self.assertIn("Forecast at Madrona Beach, observations from Ault Field.", self.page)
+        self.assertIn("api.weather.gov/points/48.221356,-122.533162", self.page)
+        self.assertIn("stations/KNUW/observations/latest", self.page)
+        self.assertNotIn("NWS forecast grid for KNUW", self.page)
+        self.assertNotIn("Open-Meteo forecast at the KNUW coordinates", self.page)
+
+    def test_hourly_wind_text_uses_the_midpoint(self):
+        self.assertEqual(fetchers.parse_wind_speed_mph("5 to 10 mph"), 7.5)
+        self.assertEqual(fetchers.parse_wind_speed_mph("Calm"), 0.0)
+        periods = [{
+            "startTime": "2026-10-22T15:00:00-07:00",
+            "endTime": "2026-10-22T16:00:00-07:00",
+            "windSpeed": "5 to 10 mph",
+            "windDirection": "WNW",
+            "windGust": "15 mph",
+        }]
+        parsed = fetchers.hourly_wind_intervals(periods)
+        self.assertEqual(parsed["speeds"][0][2], 7.5)
+        self.assertEqual(parsed["directions"][0][2], 292.5)
+        self.assertEqual(parsed["gusts"][0][2], 15.0)
 
     def test_version_file_uses_the_same_timestamp_as_the_page(self):
         payload = render.version_payload(self.when, "2026-10-22")
