@@ -35,6 +35,13 @@ class FormulaTests(unittest.TestCase):
         self.assertAlmostEqual(westerly, 0.0, places=5)
         self.assertEqual(inches, 0.0)
 
+    def test_compass_round_trip(self):
+        self.assertEqual(model.degrees_from_compass("W"), 270.0)
+        self.assertEqual(model.degrees_from_compass("wnw"), 292.5)
+        self.assertEqual(model.compass(model.degrees_from_compass("SSE")), "SSE")
+        self.assertIsNone(model.degrees_from_compass("west"))
+        self.assertIsNone(model.degrees_from_compass(""))
+
     def test_southwest_wind_is_partially_westerly(self):
         westerly, inches = model.wind_adjustment_inches(20, 225, self.cfg)
         self.assertAlmostEqual(westerly, 14.1421, places=3)

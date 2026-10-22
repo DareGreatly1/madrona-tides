@@ -1,12 +1,15 @@
 """Public data sources. No API keys.
 
 Tide predictions: NOAA CO-OPS, station 9447929, datum MLLW, feet.
-Wind forecast: api.weather.gov gridpoint forecast at KNUW.
-Sea-level pressure: the NWS grid pressure series when it is published,
-otherwise the Open-Meteo sea-level pressure forecast at the same
-coordinates. The latest KNUW observation (also api.weather.gov) is
-kept for the "right now" panel and for a high tide within two hours
-of that observation.
+Wind forecast: api.weather.gov gridpoint forecast at the beach
+coordinates in config.json. If that grid has no wind, the hourly
+forecast at the same point is used, and if that is empty the KNUW
+grid is the labeled fallback.
+Sea-level pressure: the NWS grid pressure series at the beach when it
+is published, otherwise the Open-Meteo sea-level pressure forecast at
+the beach. The latest KNUW observation (also api.weather.gov) is kept
+for the "right now" panel and for a high tide within two hours of
+that observation. The historical backtest still uses the KNUW archive.
 Skagit River: USGS 12200500 instantaneous gauge height, and the
 National Water Prediction Service forecast for MVEW1 (NWRFC / NWS).
 """
@@ -17,6 +20,7 @@ import csv
 import http.client
 import io
 import json
+import re
 import time
 import urllib.error
 import urllib.parse
@@ -178,8 +182,8 @@ def fetch_nws_grid(latitude: float, longitude: float) -> dict:
     }
 
 
-def fetch_knuw_observation() -> dict | None:
-    url = "https://api.weather.gov/stations/KNUW/observations/latest"
+def fetch_station_observation(station_id: str) -> dict | None:
+    url = f"https://api.weather.gov/stations/{station_id}/observations/latest"
     try:
         payload = get_json(url, headers={"Accept": "application/geo+json"})
     except FetchError:
@@ -188,6 +192,74 @@ def fetch_knuw_observation() -> dict | None:
         return None
     props = payload.get("properties") or {}
     return props
+
+
+def fetch_knuw_observation() -> dict | None:
+    return fetch_station_observation("KNUW")
+
+
+def fetch_nws_hourly(url: str) -> list[dict]:
+    payload = get_json(url, headers={"Accept": "application/geo+json"})
+    if not isinstance(payload, dict):
+        raise FetchError("NWS hourly forecast failed")
+    periods = (payload.get("properties") or {}).get("periods") or []
+    if not periods:
+        raise FetchError("NWS hourly forecast had no periods")
+    return periods
+
+
+def parse_wind_speed_mph(text: str | None) -> float | None:
+    """Parse an NWS wind string such as '5 to 10 mph' into a single mph value.
+
+    A range uses the midpoint. Calm is zero.
+    """
+    if text is None:
+        return None
+    cleaned = text.strip().lower()
+    if not cleaned:
+        return None
+    if cleaned == "calm":
+        return 0.0
+    numbers = [float(match) for match in re.findall(r"\d+(?:\.\d+)?", cleaned)]
+    if not numbers:
+        return None
+    if "km/h" in cleaned or "kmh" in cleaned:
+        numbers = [value * KMH_TO_MPH for value in numbers]
+    elif "kt" in cleaned or "knot" in cleaned:
+        numbers = [value * KT_TO_MPH for value in numbers]
+    return sum(numbers) / len(numbers)
+
+
+def hourly_wind_intervals(periods: list[dict]) -> dict[str, list[tuple[datetime, datetime, float]]]:
+    """Turn NWS hourly forecast periods into the same intervals the grid uses."""
+    import model
+
+    speeds: list[tuple[datetime, datetime, float]] = []
+    directions: list[tuple[datetime, datetime, float]] = []
+    gusts: list[tuple[datetime, datetime, float]] = []
+    for period in periods:
+        start_text = period.get("startTime")
+        end_text = period.get("endTime")
+        if not start_text or not end_text:
+            continue
+        start = datetime.fromisoformat(start_text)
+        end = datetime.fromisoformat(end_text)
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=timezone.utc)
+        speed = parse_wind_speed_mph(period.get("windSpeed"))
+        direction = model.degrees_from_compass(period.get("windDirection"))
+        if speed is not None and direction is None and speed < 0.5:
+            direction = 0.0
+        if speed is not None:
+            speeds.append((start, end, speed))
+        if direction is not None:
+            directions.append((start, end, direction))
+        gust = parse_wind_speed_mph(period.get("windGust"))
+        if gust is not None:
+            gusts.append((start, end, gust))
+    return {"speeds": speeds, "directions": directions, "gusts": gusts}
 
 
 def quantity_mb(quantity: dict | None) -> float | None:

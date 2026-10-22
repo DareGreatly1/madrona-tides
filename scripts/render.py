@@ -194,10 +194,14 @@ def tide_card(tide: dict, cfg: dict, featured: bool = False) -> str:
         gust = ""
         if tide.get("wind_gust_mph") is not None:
             gust = f", gusts {tide['wind_gust_mph']:.0f} mph"
+        westerly = tide.get("westerly_mph")
+        westerly_text = "—" if westerly is None else f"{westerly:.0f} mph"
+        source = tide.get("wind_source") or ""
         wind_detail = (
             f"{tide['wind_mph']:.0f} mph from {esc(tide.get('wind_compass'))} "
             f"({tide['wind_dir_deg']:.0f}°){gust}. "
-            f"Westerly part {tide['westerly_mph']:.0f} mph."
+            f"Westerly part {westerly_text}."
+            + (f" {esc(source)}" if source else "")
         )
     river_detail = "—"
     if tide.get("river_ft") is not None:
@@ -237,6 +241,8 @@ def formula_block(result: dict) -> str:
 def backtest_section(backtest: dict | None, cfg: dict) -> str:
     if not backtest:
         return "<section><h2>Past floods</h2><p>No backtest file has been generated yet.</p></section>"
+    observation = cfg["weather"]["observation"]
+    obs_name = f"{observation['short_label']} ({observation['station_id']})"
     cards = []
     for event in backtest.get("events") or []:
         owner = event["owner_inputs"]
@@ -263,7 +269,7 @@ def backtest_section(backtest: dict | None, cfg: dict) -> str:
   {formula_block(owner_now)}
   <p>Photographed height {esc(fmt_ft(observed))}. Estimate minus photographed height: <strong>{esc(fmt_signed_ft(owner_now['predicted_actual_ft'] - observed))}</strong>.</p>
   <h4>Using data retrieved for that hour</h4>
-  <p class="fine">NOAA high at {esc(fmt_short(datetime.fromisoformat(retrieved['tide_time'])))} was {esc(fmt_ft(retrieved['predicted_tide_ft']))}. KNUW at {esc(fmt_short(datetime.fromisoformat(retrieved['weather_time'])))}: sea-level pressure {esc(fmt_num(retrieved['pressure_mb'], 1))} mb, wind {esc(fmt_num(retrieved['wind_mph'], 0))} mph from {esc(model.compass(retrieved['wind_dir_deg']))} ({esc(fmt_num(retrieved['wind_dir_deg'], 0))}°). USGS gauge {esc(fmt_ft(retrieved['river_ft']))}{('' if retrieved.get('river_cfs') is None else ', about ' + format(retrieved['river_cfs'], ',.0f') + ' cfs')}.</p>
+  <p class="fine">NOAA high at {esc(fmt_short(datetime.fromisoformat(retrieved['tide_time'])))} was {esc(fmt_ft(retrieved['predicted_tide_ft']))}. {esc(obs_name)} at {esc(fmt_short(datetime.fromisoformat(retrieved['weather_time'])))}: sea-level pressure {esc(fmt_num(retrieved['pressure_mb'], 1))} mb, wind {esc(fmt_num(retrieved['wind_mph'], 0))} mph from {esc(model.compass(retrieved['wind_dir_deg']))} ({esc(fmt_num(retrieved['wind_dir_deg'], 0))}°). USGS gauge {esc(fmt_ft(retrieved['river_ft']))}{('' if retrieved.get('river_cfs') is None else ', about ' + format(retrieved['river_cfs'], ',.0f') + ' cfs')}.</p>
   {formula_block(retrieved_now)}
   <p>Photographed height {esc(fmt_ft(observed))}. Estimate minus photographed height: <strong>{esc(fmt_signed_ft(retrieved_now['predicted_actual_ft'] - observed))}</strong>.</p>
 </article>
@@ -310,7 +316,10 @@ def observation_rows(observations: list[dict], history: list[dict], backtest: di
                 retrieved["wind_dir_deg"], retrieved["river_ft"], cfg,
             )
             predicted = result["predicted_actual_ft"]
-            source = "Hindcast from NOAA, KNUW, and USGS for that hour."
+            obs = cfg["weather"]["observation"]
+            source = (
+                f"Hindcast from NOAA, {obs['short_label']} ({obs['station_id']}), and USGS for that hour."
+            )
         else:
             best = None
             best_key = None
@@ -381,14 +390,19 @@ def render_page(context: dict) -> str:
     baseline = cfg["river"]["baseline_ft"]
     flood_stage = cfg["river"]["flood_stage_ft"]
 
-    knuw_bits = "Latest KNUW observation was not available."
+    forecast = cfg["weather"]["forecast"]
+    observation = cfg["weather"]["observation"]
+    source_line = f"Forecast at {forecast['label']}, observations from {observation['short_label']}."
+    knuw_bits = f"Latest {observation['short_label']} observation was not available."
     if knuw.get("time"):
         wind = "calm" if not knuw.get("wind_mph") else (
             f"{knuw['wind_mph']:.0f} mph from {knuw.get('wind_compass') or 'an unknown direction'}"
         )
         pressure = fmt_num(knuw.get("pressure_mb"), 1)
+        distance = observation.get("distance_note") or ""
         knuw_bits = (
-            f"KNUW at {fmt_short(knuw['time'])}: sea-level pressure {pressure} mb, wind {wind}."
+            f"Observations from {observation['short_label']} ({observation['station_id']}) "
+            f"at {fmt_short(knuw['time'])}: sea-level pressure {pressure} mb, wind {wind}. {distance}"
         )
     river_bits = "Current Skagit gauge reading was not available."
     if usgs.get("stage_ft") is not None:
@@ -551,6 +565,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
   </div>
   {warning_html}
   <p class="lede">{esc(cfg['location_name'])}, {esc(cfg['location_detail'])}</p>
+  <p class="lede">{esc(source_line)}</p>
   <h1>Actual high tide</h1>
   <p class="updated">Last updated <time id="last-updated" datetime="{esc(generated.isoformat())}">{esc(fmt_when(generated))}</time></p>
   <p class="fine" id="refresh-note">This page checks for the morning update every few minutes.</p>
@@ -568,7 +583,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
     <div class="card">
       <p>{esc(knuw_bits)}</p>
       <p>{esc(river_bits)}</p>
-      <p class="fine">{esc(current.get('pressure_note') or '')} {esc(current.get('river_note') or '')}</p>
+      <p class="fine">{esc(current.get('pressure_note') or '')} {esc(current.get('wind_note') or '')} {esc(current.get('river_note') or '')}</p>
     </div>
   </section>
 
@@ -587,7 +602,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
     <ul>
       <li>Start with the NOAA predicted high tide at station {esc(cfg['tide']['station_id'])} ({esc(station)}), datum MLLW, in feet.</li>
       <li>Pressure. Add {esc(per_mb)} inches of water for every millibar that sea-level pressure is below {esc(reference)} mb, and subtract the same amount when pressure is higher.</li>
-      <li>Westerly wind. Add {esc(per_10)} inches for every 10 mph of the westerly component at {esc(cfg['weather']['label'])}. Direction is where the wind comes from. Due west counts in full. Southwest or northwest counts only the part that is from the west. South, east, and southeast count as zero and are not subtracted. Sustained wind is used. Gusts are shown and not added.</li>
+      <li>Westerly wind. Add {esc(per_10)} inches for every 10 mph of the westerly component in the forecast at {esc(forecast['label'])} ({esc(forecast['address'])}). Direction is where the wind comes from. Due west counts in full. Southwest or northwest counts only the part that is from the west. South, east, and southeast count as zero and are not subtracted. Sustained wind is used. Gusts are shown and not added. The forecast wind is the National Weather Service grid for that address. If that grid has no wind, the hourly forecast at the same point is used. If that is also empty, the {esc(observation['short_label'])} grid is used and the page says so.</li>
       <li>Skagit River. Add {esc(per_foot)} inches for every foot the Mount Vernon gauge is above {esc(f'{baseline:.0f}')} ft. At or below {esc(f'{baseline:.0f}')} ft the river term is zero. Flood stage on that gauge is {esc(f'{flood_stage:.0f}')} ft. A future high tide uses the National Water Prediction Service forecast for {esc(cfg['river']['nws_lid'])} when it covers that time, and the current USGS reading otherwise.</li>
     </ul>
     <p>{esc(cfg['flood']['basis'])}</p>
@@ -598,8 +613,9 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
     <h2>Sources</h2>
     <ul>
       <li><a href="https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id={esc(cfg['tide']['station_id'])}">NOAA tide predictions, station {esc(cfg['tide']['station_id'])}</a></li>
-      <li><a href="https://api.weather.gov/points/{cfg['weather']['latitude']},{cfg['weather']['longitude']}">NWS forecast grid for KNUW</a> and the <a href="https://api.weather.gov/stations/KNUW/observations/latest">latest KNUW observation</a></li>
-      <li><a href="https://open-meteo.com/">Open-Meteo</a> sea-level pressure at the KNUW coordinates, used when the NWS grid does not publish pressure</li>
+      <li><a href="https://api.weather.gov/points/{forecast['latitude']},{forecast['longitude']}">NWS forecast grid for {esc(forecast['label'])}</a> ({esc(forecast['address'])})</li>
+      <li><a href="https://api.weather.gov/stations/{esc(observation['station_id'])}/observations/latest">Latest {esc(observation['label'])} observation</a>. {esc(observation.get('distance_note') or '')}</li>
+      <li><a href="https://open-meteo.com/">Open-Meteo</a> sea-level pressure at {esc(forecast['label'])}, used when the NWS grid does not publish pressure. If that request fails, the same forecast at the {esc(observation['short_label'])} coordinates is used and labeled.</li>
       <li><a href="https://waterdata.usgs.gov/monitoring-location/{esc(cfg['river']['usgs_site'])}/">USGS {esc(cfg['river']['usgs_site'])}, Skagit River near Mount Vernon</a></li>
       <li><a href="https://water.noaa.gov/gauges/{esc(cfg['river']['nws_lid']).lower()}">NWS / NWRFC forecast, {esc(cfg['river']['nws_lid'])}</a></li>
     </ul>

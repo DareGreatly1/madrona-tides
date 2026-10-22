@@ -10,10 +10,20 @@
     "units": "english"
   },
   "weather": {
-    "station_id": "KNUW",
-    "label": "Ault Field / NAS Whidbey (KNUW)",
-    "latitude": 48.3518,
-    "longitude": -122.6554
+    "forecast": {
+      "label": "Madrona Beach",
+      "address": "279 Alder St, Camano Island, WA 98282",
+      "latitude": 48.221356,
+      "longitude": -122.533162
+    },
+    "observation": {
+      "station_id": "KNUW",
+      "label": "Ault Field / NAS Whidbey (KNUW)",
+      "short_label": "Ault Field",
+      "latitude": 48.3518,
+      "longitude": -122.6554,
+      "distance_note": "Closest official station, about 11 miles from the beach."
+    }
   },
   "pressure": {
     "reference_mb": 1013.21,
