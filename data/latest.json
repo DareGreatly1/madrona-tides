@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-22T07:45:59.101014-07:00",
+  "generated_at": "2026-10-22T07:52:46.248025-07:00",
   "run_date": "2026-10-22",
   "station_name": "Coupeville, Penn Cove, Whidbey Island",
   "warnings": [],
@@ -16,7 +16,7 @@
       "wind_dir_deg": 0.0,
       "wind_compass": "N",
       "wind_gust_mph": null,
-      "text": "Fog/Mist"
+      "text": ""
     },
     "usgs": {
       "time": "2026-10-22T07:30:00-07:00",
@@ -26,7 +26,7 @@
   },
   "tides": [
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-22T02:52:00-07:00",
       "predicted_tide_ft": "8.4250",
@@ -51,7 +51,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-22T15:28:00-07:00",
       "predicted_tide_ft": "11.0980",
@@ -76,7 +76,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-23T03:48:00-07:00",
       "predicted_tide_ft": "9.1540",
@@ -101,7 +101,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-23T15:50:00-07:00",
       "predicted_tide_ft": "11.3000",
@@ -126,7 +126,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-24T04:38:00-07:00",
       "predicted_tide_ft": "9.9470",
@@ -151,7 +151,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-24T16:13:00-07:00",
       "predicted_tide_ft": "11.4840",
@@ -176,7 +176,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-25T05:27:00-07:00",
       "predicted_tide_ft": "10.7230",
@@ -201,7 +201,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-25T16:39:00-07:00",
       "predicted_tide_ft": "11.6230",
@@ -226,7 +226,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-26T06:16:00-07:00",
       "predicted_tide_ft": "11.3950",
@@ -251,7 +251,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-26T17:07:00-07:00",
       "predicted_tide_ft": "11.6820",
@@ -276,7 +276,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-27T07:06:00-07:00",
       "predicted_tide_ft": "11.8780",
@@ -301,7 +301,7 @@
       "incomplete": "no"
     },
     {
-      "run_generated_at": "2026-10-22T07:45:59.101014-07:00",
+      "run_generated_at": "2026-10-22T07:52:46.248025-07:00",
       "run_date": "2026-10-22",
       "high_tide_time": "2026-10-27T17:39:00-07:00",
       "predicted_tide_ft": "11.6220",
