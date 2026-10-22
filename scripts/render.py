@@ -15,6 +15,90 @@ DISCLAIMER_INFO = (
     "This is for informational purposes only. Do not make decisions based on this data."
 )
 
+# GitHub Pages caches files for about ten minutes and often ignores
+# Cache-Control on the request. A new query string is a different cache
+# key, so this poll reads the live version.json instead of yesterday's copy.
+REFRESH_SCRIPT = """
+<script>
+(function () {
+  var POLL_MS = 180000;
+  var meta = document.querySelector('meta[name="forecast-generated-at"]');
+  var current = meta ? meta.getAttribute("content") : "";
+  var note = document.getElementById("refresh-note");
+  var timer = null;
+
+  function setNote(text) {
+    if (note) note.textContent = text;
+  }
+
+  function check() {
+    if (document.visibilityState === "hidden") return;
+    fetch("version.json?t=" + Date.now(), {
+      cache: "no-store",
+      headers: { "Accept": "application/json" }
+    }).then(function (response) {
+      if (!response.ok) throw new Error(String(response.status));
+      return response.json();
+    }).then(function (data) {
+      var published = data && data.generated_at;
+      if (!published || published === current) {
+        setNote("This page checks for the morning update every few minutes.");
+        var here = new URL(window.location.href);
+        if (here.searchParams.has("v")) {
+          here.searchParams.delete("v");
+          history.replaceState(null, "", here.pathname + here.search + here.hash);
+        }
+        return;
+      }
+      var now = Date.now();
+      var previous = Number(sessionStorage.getItem("madrona-tide-reload-at") || 0);
+      if (previous && now - previous < 45000) return;
+      sessionStorage.setItem("madrona-tide-reload-at", String(now));
+      setNote("A new forecast is published. Refreshing.");
+      var next = new URL(window.location.href);
+      next.searchParams.set("v", String(published) + "-" + now);
+      window.location.replace(next.toString());
+    }).catch(function () {
+      setNote("Could not check for a new forecast. Trying again shortly.");
+    });
+  }
+
+  function start() {
+    if (timer !== null) return;
+    timer = setInterval(check, POLL_MS);
+  }
+
+  function stop() {
+    if (timer === null) return;
+    clearInterval(timer);
+    timer = null;
+  }
+
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden") {
+      stop();
+    } else {
+      check();
+      start();
+    }
+  });
+  window.addEventListener("pageshow", function (event) {
+    if (event.persisted) check();
+  });
+  if (document.visibilityState !== "hidden") start();
+  setTimeout(check, 4000);
+})();
+</script>
+"""
+
+
+def version_payload(generated_at: datetime, run_date: str) -> dict:
+    """Tiny file the open page polls. Keep it separate from latest.json."""
+    return {
+        "generated_at": generated_at.isoformat(),
+        "run_date": run_date,
+    }
+
 
 def esc(value) -> str:
     return html.escape("" if value is None else str(value), quote=True)
@@ -323,6 +407,7 @@ def render_page(context: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Madrona Beach high tide</title>
 <meta name="description" content="A rough daily estimate of the actual high tide at Madrona Beach, Camano Island, Washington.">
+<meta name="forecast-generated-at" content="{esc(generated.isoformat())}">
 <style>
 :root {{
   --bg: #f3f0e8;
@@ -365,6 +450,8 @@ a {{ color: var(--water); }}
 }}
 .banner strong {{ display: block; font-size: 1.05rem; margin-bottom: 0.25rem; }}
 .lede {{ color: var(--muted); margin-top: 0; }}
+.updated {{ margin: 0.15rem 0 0; font-weight: 600; }}
+#refresh-note {{ margin-top: 0.1rem; }}
 .card {{
   background: var(--card);
   border: 1px solid var(--line);
@@ -465,7 +552,10 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
   {warning_html}
   <p class="lede">{esc(cfg['location_name'])}, {esc(cfg['location_detail'])}</p>
   <h1>Actual high tide</h1>
-  <p class="lede">Updated {esc(fmt_when(generated))}. Astronomical tide plus rough allowances for air pressure, westerly wind, and the Skagit River. A high tide is flagged at {esc(fmt_ft(flood_ft, 1))}.</p>
+  <p class="updated">Last updated <time id="last-updated" datetime="{esc(generated.isoformat())}">{esc(fmt_when(generated))}</time></p>
+  <p class="fine" id="refresh-note">This page checks for the morning update every few minutes.</p>
+  <noscript><p class="fine">Reload this page to see a newer forecast.</p></noscript>
+  <p class="lede">Astronomical tide plus rough allowances for air pressure, westerly wind, and the Skagit River. A high tide is flagged at {esc(fmt_ft(flood_ft, 1))}.</p>
 
   <section id="forecast">
     <h2>High tides</h2>
@@ -520,9 +610,10 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
       <strong>{esc(DISCLAIMER_ROUGH)}</strong>
       {esc(DISCLAIMER_INFO)}
     </div>
-    <p>Not a NOAA product and not a flood warning. The two historical floods are the whole calibration set.</p>
+    <p>Last updated <time datetime="{esc(generated.isoformat())}">{esc(fmt_when(generated))}</time>. Not a NOAA product and not a flood warning. The two historical floods are the whole calibration set.</p>
   </footer>
 </main>
+{REFRESH_SCRIPT}
 </body>
 </html>
 """

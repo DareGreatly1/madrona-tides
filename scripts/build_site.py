@@ -421,6 +421,8 @@ def main() -> None:
     SITE.mkdir(parents=True, exist_ok=True)
     (SITE / "index.html").write_text(page, encoding="utf-8")
     (SITE / "latest.json").write_text(json.dumps(latest, indent=2) + "\n", encoding="utf-8")
+    version = render.version_payload(now, run_date)
+    (SITE / "version.json").write_text(json.dumps(version, indent=2) + "\n", encoding="utf-8")
     (SITE / ".nojekyll").write_text("", encoding="utf-8")
 
     print(f"Wrote {SITE / 'index.html'}")

@@ -68,6 +68,8 @@ The comparison uses a hindcast for the two historical photos, and `data/history.
 
 The job fetches the feeds, rebuilds `site/index.html`, appends that day's rows to `data/history.csv` and `data/history.jsonl` (a second run the same day replaces that day's rows), commits the result, and deploys the `site/` folder with GitHub Pages.
 
+A browser left open on the page reloads itself after that publish. It requests the small `version.json` file every few minutes, and again when the tab becomes visible, using a new address each time so GitHub Pages' cache cannot keep serving the previous timestamp. When the timestamp in that file differs from the page, the browser loads the new forecast. The last-updated time is shown under the title and in the footer. The check pauses while the tab is in the background.
+
 No API keys are required.
 
 ### Turn the page on
