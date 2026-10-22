@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import html
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import model
+
+PACIFIC = ZoneInfo("America/Los_Angeles")
 
 DISCLAIMER_ROUGH = (
     "These are VERY rough estimates and should not be used to reduce "
@@ -126,7 +129,14 @@ def fmt_signed_ft(value: float | None) -> str:
     return f"{sign}{abs(value):.2f} ft"
 
 
+def as_pacific(moment: datetime) -> datetime:
+    if moment.tzinfo is None:
+        return moment
+    return moment.astimezone(PACIFIC)
+
+
 def fmt_when(moment: datetime) -> str:
+    moment = as_pacific(moment)
     hour = moment.strftime("%I").lstrip("0") or "0"
     clock = f"{hour}:{moment.strftime('%M %p')}"
     zone = moment.tzname() or ""
@@ -134,6 +144,7 @@ def fmt_when(moment: datetime) -> str:
 
 
 def fmt_short(moment: datetime) -> str:
+    moment = as_pacific(moment)
     hour = moment.strftime("%I").lstrip("0") or "0"
     return f"{moment.strftime('%b')} {moment.day}, {hour}:{moment.strftime('%M %p')}"
 

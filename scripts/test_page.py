@@ -62,6 +62,11 @@ class RefreshMarkupTests(unittest.TestCase):
         self.assertNotIn("NWS forecast grid for KNUW", self.page)
         self.assertNotIn("Open-Meteo forecast at the KNUW coordinates", self.page)
 
+    def test_utc_observation_time_is_shown_in_pacific(self):
+        moment = datetime(2026, 10, 22, 12, 53, tzinfo=ZoneInfo("UTC"))
+        self.assertEqual(render.fmt_short(moment), "Oct 22, 5:53 AM")
+        self.assertIn("5:53 AM PDT", render.fmt_when(moment))
+
     def test_hourly_wind_text_uses_the_midpoint(self):
         self.assertEqual(fetchers.parse_wind_speed_mph("5 to 10 mph"), 7.5)
         self.assertEqual(fetchers.parse_wind_speed_mph("Calm"), 0.0)
