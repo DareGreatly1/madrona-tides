@@ -64,15 +64,23 @@ observed_at,steps_showing,actual_height_ft,notes
 - `observed_at` is Pacific time. Include the offset (`-07:00` in summer, `-08:00` in winter) so the comparison lands on the right high tide.
 - `steps_showing` is how many of the 10 steps are still above the water.
 - `actual_height_ft` can be left blank. The page then uses the owner's scale: height = 10 ft + (10 − steps) × 1 ft. You can also type the height yourself.
-- Commit the file to `main` (or use the edit link on the page), then run **Daily forecast** from the Actions tab. The next morning's run will pick it up if you don't run it by hand.
+- Commit the file to `main` (or use the edit link on the page), then run **Daily forecast** from the Actions tab. The next scheduled run will pick it up if you don't run it by hand.
 
 The comparison uses a hindcast for the two historical photos, and `data/history.csv` for any later reading. That log has one row per high tide per day: the predicted tide, pressure, wind, river height, each adjustment, and the predicted actual height.
 
 ## Daily update
 
-[`.github/workflows/daily-forecast.yml`](.github/workflows/daily-forecast.yml) runs at **13:30 UTC**, which is 5:30 AM PST and 6:30 AM PDT, and whenever someone starts it with **Run workflow**. GitHub sometimes starts a scheduled job later than the clock time.
+[`.github/workflows/daily-forecast.yml`](.github/workflows/daily-forecast.yml) publishes overnight so the page is ready by morning. GitHub often starts a scheduled job hours late, or skips it, so there are three chances. All times are UTC:
 
-The job fetches the feeds, rebuilds `site/index.html`, appends that day's rows to `data/history.csv` and `data/history.jsonl` (a second run the same day replaces that day's rows), commits the result, and deploys the `site/` folder with GitHub Pages.
+- `15 8 * * *` is 12:15 AM PST and 1:15 AM PDT. This is the primary run, just after local midnight.
+- `15 10 * * *` is 2:15 AM PST and 3:15 AM PDT.
+- `15 12 * * *` is 4:15 AM PST and 5:15 AM PDT.
+
+The forecast day is the America/Los_Angeles date, not the runner's UTC date. A run at 12:15 AM Pacific therefore includes that day's high tides and the following days, the same window as a daytime run.
+
+A scheduled run checks `site/version.json` and `data/history.csv`. If either one already has today's Pacific date, the job exits successfully and does not rebuild or redeploy. **Run workflow** always rebuilds, and that manual run still replaces the day's rows in the history log.
+
+The job fetches the feeds, rebuilds `site/index.html`, writes that day's rows to `data/history.csv` and `data/history.jsonl`, commits the result, and deploys the `site/` folder with GitHub Pages.
 
 A browser left open on the page reloads itself after that publish. It requests the small `version.json` file every few minutes, and again when the tab becomes visible, using a new address each time so GitHub Pages' cache cannot keep serving the previous timestamp. When the timestamp in that file differs from the page, the browser loads the new forecast. The last-updated time is shown under the title and in the footer. The check pauses while the tab is in the background.
 

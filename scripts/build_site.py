@@ -54,6 +54,39 @@ CSV_FIELDS = [
 ]
 
 
+def in_pacific(moment: datetime, timezone_name: str = "America/Los_Angeles") -> datetime:
+    """Clock time in America/Los_Angeles.
+
+    An aware clock is converted. A naive clock is taken as already local,
+    which is how the NOAA high-tide strings are stamped.
+    """
+    zone = ZoneInfo(timezone_name)
+    if moment.tzinfo is None:
+        return moment.replace(tzinfo=zone)
+    return moment.astimezone(zone)
+
+
+def pacific_now(clock: datetime | None = None, timezone_name: str = "America/Los_Angeles") -> datetime:
+    """Current America/Los_Angeles time, or `clock` converted into that zone.
+
+    The GitHub runner clock is UTC. On a Pacific evening the UTC date
+    is already the next day, so the forecast day is this local date
+    rather than the runner's date. The overnight crons run after
+    Pacific midnight, when both dates agree.
+    """
+    if clock is None:
+        return datetime.now(ZoneInfo(timezone_name))
+    return in_pacific(clock, timezone_name)
+
+
+def forecast_bounds(now: datetime, forecast_days: int, timezone_name: str = "America/Los_Angeles") -> tuple[datetime, datetime]:
+    """Local midnight today through the end of the day `forecast_days` ahead."""
+    local = in_pacific(now, timezone_name)
+    start = local.replace(hour=0, minute=0, second=0, microsecond=0)
+    end = (start + timedelta(days=forecast_days)).replace(hour=23, minute=59, second=59, microsecond=0)
+    return start, end
+
+
 def num(value, digits=4):
     if value is None:
         return ""
@@ -273,11 +306,10 @@ def observation_snapshot(props: dict | None, zone: ZoneInfo) -> dict:
 
 
 def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
-    zone = now.tzinfo
     warnings: list[str] = []
-    start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    # Through the end of the day `forecast_days` ahead, so the last day is complete.
-    end = (start + timedelta(days=cfg["forecast_days"])).replace(hour=23, minute=59, second=59)
+    # Window is the Pacific local date, including a run just after midnight.
+    start, end = forecast_bounds(now, cfg["forecast_days"], cfg["timezone"])
+    zone = start.tzinfo
     predictions = fetchers.fetch_noaa_predictions(
         cfg["tide"]["station_id"],
         start,
@@ -490,8 +522,8 @@ def tide_record(tide: dict, generated: datetime, run_date: str, threshold: float
 
 def main() -> None:
     cfg = model.load_config()
-    zone = ZoneInfo(cfg["timezone"])
-    now = datetime.now(zone)
+    now = pacific_now(timezone_name=cfg["timezone"])
+    zone = now.tzinfo
     tides, current, warnings = build_tides(cfg, now)
     if not tides:
         raise fetchers.FetchError("NOAA returned no high tides in the forecast window")

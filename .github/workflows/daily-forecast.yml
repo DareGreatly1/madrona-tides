@@ -2,8 +2,16 @@ name: Daily forecast
 
 on:
   schedule:
-    # 13:30 UTC is 5:30 AM PST and 6:30 AM PDT.
-    - cron: "30 13 * * *"
+    # Just after local midnight, then two backups. GitHub often starts
+    # a cron late or skips it, so a later run covers a missed one.
+    # A scheduled run that finds this Pacific date already published
+    # exits without rebuilding. workflow_dispatch always rebuilds.
+    # 08:15 UTC is 12:15 AM PST and 1:15 AM PDT.
+    - cron: "15 8 * * *"
+    # 10:15 UTC is 2:15 AM PST and 3:15 AM PDT.
+    - cron: "15 10 * * *"
+    # 12:15 UTC is 4:15 AM PST and 5:15 AM PDT.
+    - cron: "15 12 * * *"
   workflow_dispatch:
 
 permissions:
@@ -18,19 +26,28 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      publish: ${{ steps.gate.outputs.publish }}
     steps:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      - name: Skip a scheduled run when today is already published
+        id: gate
+        run: python3 scripts/forecast_schedule.py
+
       - name: Set up Python
+        if: steps.gate.outputs.publish == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Build the forecast page
+        if: steps.gate.outputs.publish == 'true'
         run: python scripts/build_site.py
 
       - name: Commit the forecast history
+        if: steps.gate.outputs.publish == 'true'
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
@@ -44,15 +61,18 @@ jobs:
           fi
 
       - name: Configure GitHub Pages
+        if: steps.gate.outputs.publish == 'true'
         uses: actions/configure-pages@v5
 
       - name: Upload the page
+        if: steps.gate.outputs.publish == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
 
   deploy:
     needs: build
+    if: needs.build.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
