@@ -581,7 +581,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
   <p class="updated">Last updated <time id="last-updated" datetime="{esc(generated.isoformat())}">{esc(fmt_when(generated))}</time></p>
   <p class="fine" id="refresh-note">This page checks for the morning update every few minutes.</p>
   <noscript><p class="fine">Reload this page to see a newer forecast.</p></noscript>
-  <p class="lede">Astronomical tide plus rough allowances for air pressure, westerly wind, and the Skagit River. A high tide is flagged at {esc(fmt_ft(flood_ft, 1))}.</p>
+  <p class="lede">Astronomical tide plus rough allowances for air pressure, westerly wind, and the Skagit River. Potential flooding above 14 ft.</p>
 
   <section id="forecast">
     <h2>High tides</h2>

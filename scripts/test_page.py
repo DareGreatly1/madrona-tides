@@ -61,6 +61,8 @@ class RefreshMarkupTests(unittest.TestCase):
         self.assertIn("stations/KNUW/observations/latest", self.page)
         self.assertNotIn("NWS forecast grid for KNUW", self.page)
         self.assertNotIn("Open-Meteo forecast at the KNUW coordinates", self.page)
+        self.assertIn("Potential flooding above 14 ft.", self.page)
+        self.assertNotIn("A high tide is flagged at", self.page)
 
     def test_utc_observation_time_is_shown_in_pacific(self):
         moment = datetime(2026, 10, 22, 12, 53, tzinfo=ZoneInfo("UTC"))
