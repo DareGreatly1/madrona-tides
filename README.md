@@ -78,7 +78,7 @@ The comparison uses a hindcast for the two historical photos, and `data/history.
 
 The forecast day is the America/Los_Angeles date, not the runner's UTC date. A run at 12:15 AM Pacific therefore includes that day's high tides and the following days, the same window as a daytime run.
 
-A scheduled run checks `site/version.json` and `data/history.csv`. If either one already has today's Pacific date, the job exits successfully and does not rebuild or redeploy. **Run workflow** always rebuilds, and that manual run still replaces the day's rows in the history log.
+A scheduled run reads the live `version.json` on GitHub Pages, not only the copy in git. If that live file is already today's Pacific date, the job exits successfully and does not rebuild or redeploy. If git already has today's forecast but the live page does not, the job deploys the committed `site/` folder without fetching the feeds again. That covers a forecast whose commit succeeded and whose Pages deploy did not. **Run workflow** always rebuilds and deploys, and that manual run still replaces the day's rows in the history log.
 
 The job fetches the feeds, rebuilds `site/index.html`, writes that day's rows to `data/history.csv` and `data/history.jsonl`, commits the result, and deploys the `site/` folder with GitHub Pages.
 
