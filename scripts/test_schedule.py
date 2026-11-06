@@ -82,26 +82,58 @@ class SkipTests(unittest.TestCase):
             encoding="utf-8",
         )
 
-    def test_schedule_skips_when_version_json_is_today(self):
+    def test_schedule_skips_only_when_the_live_page_is_today(self):
         self.write_version("2026-01-15")
-        self.assertTrue(forecast_schedule.already_published(self.root, "2026-01-15"))
-        self.assertFalse(forecast_schedule.should_publish("schedule", self.root, "2026-01-15"))
+        self.assertEqual(
+            forecast_schedule.publication_plan("schedule", self.root, "2026-01-15", "2026-01-15"),
+            (False, False),
+        )
 
-    def test_schedule_skips_when_only_history_has_today(self):
+    def test_committed_forecast_is_redeployed_when_the_live_page_is_older(self):
+        self.write_version("2026-01-15")
         self.write_history("2026-01-15")
-        self.assertTrue(forecast_schedule.already_published(self.root, "2026-01-15"))
-        self.assertFalse(forecast_schedule.should_publish("schedule", self.root, "2026-01-15"))
+        self.assertEqual(
+            forecast_schedule.publication_plan("schedule", self.root, "2026-01-15", "2026-01-14"),
+            (False, True),
+        )
 
-    def test_yesterdays_run_does_not_count_as_today(self):
+    def test_unknown_live_page_still_deploys_a_committed_forecast(self):
+        self.write_version("2026-01-15")
+        self.assertEqual(
+            forecast_schedule.publication_plan("schedule", self.root, "2026-01-15", None),
+            (False, True),
+        )
+
+    def test_schedule_rebuilds_when_neither_copy_is_today(self):
         self.write_version("2026-01-14")
         self.write_history("2026-01-14")
         self.assertFalse(forecast_schedule.already_published(self.root, "2026-01-15"))
-        self.assertTrue(forecast_schedule.should_publish("schedule", self.root, "2026-01-15"))
+        self.assertEqual(
+            forecast_schedule.publication_plan("schedule", self.root, "2026-01-15", "2026-01-14"),
+            (True, True),
+        )
 
-    def test_manual_run_publishes_even_when_today_exists(self):
-        self.write_version("2026-01-15")
+    def test_history_alone_counts_as_a_committed_forecast(self):
         self.write_history("2026-01-15")
-        self.assertTrue(forecast_schedule.should_publish("workflow_dispatch", self.root, "2026-01-15"))
+        self.assertTrue(forecast_schedule.already_published(self.root, "2026-01-15"))
+        self.assertEqual(
+            forecast_schedule.publication_plan("schedule", self.root, "2026-01-15", "2026-01-14"),
+            (False, True),
+        )
+
+    def test_manual_run_rebuilds_even_when_the_live_page_is_today(self):
+        self.write_version("2026-01-15")
+        self.assertEqual(
+            forecast_schedule.publication_plan("workflow_dispatch", self.root, "2026-01-15", "2026-01-15"),
+            (True, True),
+        )
+
+    def test_unreadable_live_page_is_not_treated_as_current(self):
+        class Broken:
+            def __call__(self, request, timeout):
+                raise TimeoutError("timed out")
+
+        self.assertIsNone(forecast_schedule.read_live_run_date("https://example.test/version.json", Broken()))
 
     def test_github_output_records_the_decision(self):
         import tempfile
@@ -112,14 +144,16 @@ class SkipTests(unittest.TestCase):
         previous = os.environ.get("GITHUB_OUTPUT")
         os.environ["GITHUB_OUTPUT"] = handle.name
         try:
-            forecast_schedule.write_github_output(False)
-            forecast_schedule.write_github_output(True)
+            forecast_schedule.write_github_output(False, True)
         finally:
             if previous is None:
                 os.environ.pop("GITHUB_OUTPUT", None)
             else:
                 os.environ["GITHUB_OUTPUT"] = previous
-        self.assertEqual(Path(handle.name).read_text(encoding="utf-8"), "publish=false\npublish=true\n")
+        self.assertEqual(
+            Path(handle.name).read_text(encoding="utf-8"),
+            "rebuild=false\ndeploy=true\n",
+        )
 
 
 class WorkflowFileTests(unittest.TestCase):
@@ -131,7 +165,10 @@ class WorkflowFileTests(unittest.TestCase):
         self.assertNotIn("30 13", text)
         self.assertIn("workflow_dispatch:", text)
         self.assertIn("forecast_schedule.py", text)
-        self.assertIn("needs.build.outputs.publish == 'true'", text)
+        self.assertIn("needs.build.outputs.deploy == 'true'", text)
+        self.assertIn("steps.gate.outputs.rebuild == 'true'", text)
+        self.assertIn("timeout: 1800000", text)
+        self.assertNotIn("outputs.publish", text)
 
 
 if __name__ == "__main__":
