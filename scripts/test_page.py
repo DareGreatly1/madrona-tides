@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sys
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -89,6 +89,32 @@ class RefreshMarkupTests(unittest.TestCase):
         self.assertEqual(payload["generated_at"], self.when.isoformat())
         self.assertIn(payload["generated_at"], self.page)
         json.dumps(payload)
+
+
+class NwsDurationTests(unittest.TestCase):
+    def test_hour_periods_stay_the_same(self):
+        self.assertEqual(fetchers.parse_duration("PT1H"), timedelta(hours=1))
+        self.assertEqual(fetchers.parse_duration("PT3H"), timedelta(hours=3))
+        self.assertEqual(fetchers.parse_duration("PT30M"), timedelta(minutes=30))
+        self.assertEqual(fetchers.parse_duration("PT13H30M"), timedelta(hours=13, minutes=30))
+
+    def test_day_period_that_stopped_the_november_7_build(self):
+        self.assertEqual(fetchers.parse_duration("P1DT15H"), timedelta(days=1, hours=15))
+        self.assertEqual(fetchers.parse_duration("P1D"), timedelta(days=1))
+        self.assertEqual(fetchers.parse_duration("P7DT10H"), timedelta(days=7, hours=10))
+        intervals = fetchers.parse_nws_intervals([{
+            "validTime": "2026-11-07T18:00:00+00:00/P1DT15H",
+            "value": 150,
+        }])
+        start, end, value = intervals[0]
+        self.assertEqual(end - start, timedelta(days=1, hours=15))
+        self.assertEqual(value, 150)
+
+    def test_unknown_duration_still_fails(self):
+        with self.assertRaises(fetchers.FetchError):
+            fetchers.parse_duration("P1W")
+        with self.assertRaises(fetchers.FetchError):
+            fetchers.parse_duration("P1DT")
 
 
 if __name__ == "__main__":
