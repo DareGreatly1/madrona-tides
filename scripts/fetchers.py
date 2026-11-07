@@ -65,21 +65,37 @@ def get_text(url: str, headers: dict | None = None) -> str:
     return _request(url, headers=headers).decode("utf-8", errors="replace")
 
 
+_ISO_DURATION = re.compile(
+    r"^P(?:(?P<days>\d+)D)?"
+    r"(?:T(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?)?$"
+)
+
+
 def parse_duration(spec: str) -> timedelta:
-    """Parse an ISO-8601 duration such as PT1H, PT3H, or PT30M."""
-    if not spec.startswith("PT"):
+    """Parse an NWS validTime duration such as PT1H, PT30M, or P1DT15H.
+
+    The grid uses both hour-only periods and day-long periods. A day
+    field is PnD, including PnDTnH.
+    """
+    match = _ISO_DURATION.fullmatch(spec or "")
+    if not match:
         raise FetchError(f"Unsupported duration {spec}")
-    body = spec[2:]
-    hours = 0
-    minutes = 0
-    if "H" in body:
-        hour_text, body = body.split("H", 1)
-        hours = int(hour_text or "0")
-    if body.endswith("M"):
-        minutes = int(body[:-1] or "0")
-    elif body:
+    days_text, hours_text, minutes_text, seconds_text = (
+        match.group("days"),
+        match.group("hours"),
+        match.group("minutes"),
+        match.group("seconds"),
+    )
+    if "T" in (spec or "") and hours_text is None and minutes_text is None and seconds_text is None:
         raise FetchError(f"Unsupported duration {spec}")
-    return timedelta(hours=hours, minutes=minutes)
+    if days_text is None and hours_text is None and minutes_text is None and seconds_text is None:
+        raise FetchError(f"Unsupported duration {spec}")
+    return timedelta(
+        days=int(days_text or 0),
+        hours=int(hours_text or 0),
+        minutes=int(minutes_text or 0),
+        seconds=int(seconds_text or 0),
+    )
 
 
 def parse_nws_intervals(values: list[dict]) -> list[tuple[datetime, datetime, float]]:
