@@ -582,6 +582,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
   <p class="fine" id="refresh-note">This page checks for the morning update every few minutes.</p>
   <noscript><p class="fine">Reload this page to see a newer forecast.</p></noscript>
   <p class="lede">Astronomical tide plus rough allowances for air pressure, westerly wind, and the Skagit River. Potential flooding above 14 ft.</p>
+  {f'<p class="fine" id="pressure-note">{esc(current.get("pressure_alert"))}</p>' if current.get("pressure_alert") else ""}
 
   <section id="forecast">
     <h2>High tides</h2>

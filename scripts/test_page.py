@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 import sys
 import unittest
-from datetime import datetime, timedelta
+import io
+import urllib.error
+from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import build_site
 import fetchers
 import model
 import render
@@ -115,6 +119,202 @@ class NwsDurationTests(unittest.TestCase):
             fetchers.parse_duration("P1W")
         with self.assertRaises(fetchers.FetchError):
             fetchers.parse_duration("P1DT")
+
+
+class PressureFallbackTests(unittest.TestCase):
+    def setUp(self):
+        self.zone = timezone.utc
+        self.observed = "Ault Field (KNUW) observed sea-level pressure"
+        self.held = "Ault Field (KNUW) observed sea-level pressure, held for this hour"
+        self.forecast = "Open-Meteo sea-level pressure forecast at Madrona Beach"
+        self.standard = "Standard pressure (1013.21 mb); no pressure adjustment"
+
+    def choose(self, when, observations, forecast):
+        return build_site.pressure_for_tide(
+            when, observations, forecast, 1013.21,
+            self.forecast, self.observed, self.held, self.standard,
+        )
+
+    def test_near_term_uses_the_knuw_observation(self):
+        when = datetime(2026, 11, 15, 16, 0, tzinfo=self.zone)
+        observations = [
+            (datetime(2026, 11, 15, 12, 0, tzinfo=self.zone), 1000.0),
+            (datetime(2026, 11, 15, 15, 30, tzinfo=self.zone), 1008.0),
+        ]
+        forecast = [(datetime(2026, 11, 15, 16, 0, tzinfo=self.zone), 1020.0)]
+        pressure, source = self.choose(when, observations, forecast)
+        self.assertEqual(pressure, 1008.0)
+        self.assertEqual(source, self.observed)
+
+    def test_later_hour_uses_the_forecast(self):
+        when = datetime(2026, 11, 16, 16, 0, tzinfo=self.zone)
+        observations = [(datetime(2026, 11, 15, 15, 0, tzinfo=self.zone), 1008.0)]
+        forecast = [(datetime(2026, 11, 16, 16, 0, tzinfo=self.zone), 1022.0)]
+        pressure, source = self.choose(when, observations, forecast)
+        self.assertEqual(pressure, 1022.0)
+        self.assertEqual(source, self.forecast)
+
+    def test_missing_forecast_holds_the_latest_observation(self):
+        when = datetime(2026, 11, 17, 4, 0, tzinfo=self.zone)
+        observations = [
+            (datetime(2026, 11, 15, 12, 0, tzinfo=self.zone), 1000.0),
+            (datetime(2026, 11, 15, 18, 0, tzinfo=self.zone), 1004.0),
+        ]
+        pressure, source = self.choose(when, observations, None)
+        self.assertEqual(pressure, 1004.0)
+        self.assertEqual(source, self.held)
+
+    def test_total_failure_uses_standard_pressure_with_no_adjustment(self):
+        when = datetime(2026, 11, 15, 16, 0, tzinfo=self.zone)
+        pressure, source = self.choose(when, [], None)
+        self.assertEqual(pressure, 1013.21)
+        self.assertEqual(source, self.standard)
+        cfg = model.load_config()
+        self.assertEqual(model.pressure_adjustment_inches(pressure, cfg), 0)
+
+    def test_standard_pressure_note_is_on_the_page(self):
+        note = "Pressure readings were unavailable, so this forecast adds no pressure adjustment."
+        page = render.render_page({
+            "config": model.load_config(),
+            "generated_at": datetime(2026, 11, 15, 8, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+            "station_name": "Coupeville",
+            "tides": [],
+            "current": {"pressure_alert": note},
+            "warnings": [],
+            "observations": [],
+            "history": [],
+            "backtest": None,
+        })
+        self.assertIn(f'id="pressure-note">{note}', page)
+
+    def test_knuw_observations_collection_is_sea_level_pressure(self):
+        original = fetchers.get_json
+
+        def fake(url, headers=None):
+            self.assertIn("/stations/KNUW/observations", url)
+            self.assertNotIn("/latest", url)
+            return {"features": [
+                {"properties": {
+                    "timestamp": "2026-11-15T16:00:00+00:00",
+                    "seaLevelPressure": {"value": 101320, "unitCode": "wmoUnit:Pa"},
+                }},
+                {"properties": {
+                    "timestamp": "2026-11-15T15:00:00+00:00",
+                    "seaLevelPressure": {"value": None, "unitCode": "wmoUnit:Pa"},
+                }},
+                {"properties": {
+                    "timestamp": "2026-11-15T17:00:00+00:00",
+                    "seaLevelPressure": {"value": 101500, "unitCode": "wmoUnit:Pa"},
+                }},
+            ]}
+
+        fetchers.get_json = fake
+        try:
+            series = fetchers.fetch_station_pressure_observations("KNUW")
+        finally:
+            fetchers.get_json = original
+        self.assertEqual([item[1] for item in series], [1013.2, 1015.0])
+        self.assertLess(series[0][0], series[1][0])
+
+
+class OpenMeteoBackoffTests(unittest.TestCase):
+    def http_error(self, code, retry_after=None):
+        headers = EmailMessage()
+        if retry_after is not None:
+            headers["Retry-After"] = str(retry_after)
+        return urllib.error.HTTPError(
+            "https://api.open-meteo.com/v1/forecast",
+            code,
+            "error",
+            headers,
+            io.BytesIO(b""),
+        )
+
+    def test_429_backs_off_then_reads_pressure(self):
+        pauses = []
+        calls = {"n": 0}
+
+        class Body:
+            def read(self):
+                return b'{"hourly":{"time":["2026-11-15T08:00"],"pressure_msl":[1011.5]}}'
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        def opener(request, timeout):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise self.http_error(429, retry_after=9)
+            return Body()
+
+        series = fetchers.fetch_open_meteo_pressure(
+            48.221356, -122.533162, opener=opener, sleeper=pauses.append,
+        )
+        self.assertEqual(pauses, [9])
+        self.assertEqual(series[0][1], 1011.5)
+
+    def test_retry_after_is_capped_at_one_minute(self):
+        pauses = []
+
+        def opener(request, timeout):
+            raise self.http_error(429, retry_after=600)
+
+        with self.assertRaises(fetchers.FetchError):
+            fetchers.get_with_backoff(
+                "https://api.open-meteo.com/v1/forecast",
+                opener=opener,
+                sleeper=pauses.append,
+                attempts=2,
+            )
+        self.assertEqual(pauses, [60])
+
+    def test_timeout_is_retried(self):
+        pauses = []
+        calls = {"n": 0}
+
+        class Body:
+            def read(self):
+                return b"ok"
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        def opener(request, timeout):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                raise TimeoutError("handshake timed out")
+            return Body()
+
+        payload = fetchers.get_with_backoff(
+            "https://api.open-meteo.com/v1/forecast",
+            opener=opener,
+            sleeper=pauses.append,
+            attempts=2,
+        )
+        self.assertEqual(payload, b"ok")
+        self.assertEqual(pauses, [5])
+
+    def test_other_client_errors_are_not_retried(self):
+        calls = {"n": 0}
+
+        def opener(request, timeout):
+            calls["n"] += 1
+            raise self.http_error(400)
+
+        with self.assertRaises(fetchers.FetchError):
+            fetchers.get_with_backoff(
+                "https://api.open-meteo.com/v1/forecast",
+                opener=opener,
+                sleeper=lambda seconds: None,
+                attempts=4,
+            )
+        self.assertEqual(calls["n"], 1)
 
 
 if __name__ == "__main__":

@@ -40,9 +40,9 @@ Forecast wind and sea-level pressure are for the beach, not for the airport. The
 
 Wind speed and direction come from the [api.weather.gov](https://api.weather.gov/) forecast grid for that point (office SEW, grid 124,98). If that grid has no wind, the build uses the NWS hourly forecast at the same point. If that is also empty, it uses the KNUW grid and the page says the wind is from Ault Field.
 
-The National Weather Service grid for the beach does not currently publish pressure, so the sea-level pressure forecast is the Open-Meteo value at the beach coordinates. If Open-Meteo fails there, the build uses Open-Meteo at the KNUW coordinates and labels that fallback. If the beach grid starts publishing pressure, the build uses that automatically.
+The National Weather Service grid for the beach does not currently publish pressure. A high tide within two hours of an Ault Field (KNUW) observation uses that station's sea-level pressure from [api.weather.gov observations](https://api.weather.gov/stations/KNUW/observations). Later hours use the Open-Meteo forecast at the beach. Open-Meteo is retried with backoff on HTTP 429 and on timeouts, and if it fails at the beach the same request is tried at the KNUW coordinates. If Open-Meteo is still unavailable, later hours keep the latest KNUW pressure. If Ault Field and Open-Meteo both fail, the run still publishes and uses standard pressure (1013.21 mb), which adds no pressure adjustment. The page says so. If the beach grid starts publishing pressure, forecast hours use that automatically.
 
-KNUW (Ault Field / NAS Whidbey) is still the closest official station, about 11 miles from the beach. A high tide within two hours of the latest KNUW observation uses that observed sea-level pressure instead of the forecast. The historical backtest also stays on the KNUW archive. The page labels this as forecast at Madrona Beach, observations from Ault Field.
+KNUW (Ault Field / NAS Whidbey) is still the closest official station, about 11 miles from the beach. The historical backtest stays on the KNUW archive. The page labels this as forecast at Madrona Beach, observations from Ault Field.
 
 The Skagit height for a future high tide is the [National Water Prediction Service](https://api.water.noaa.gov/nwps/v1/gauges/MVEW1/stageflow) forecast for gauge `MVEW1` when the forecast covers that time. Otherwise the page uses the current USGS reading and says so.
 
@@ -129,7 +129,7 @@ Open `site/index.html`.
 
 - [NOAA CO-OPS tide predictions, station 9447929](https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=9447929)
 - [NWS forecast grid for Madrona Beach](https://api.weather.gov/points/48.221356,-122.533162) (279 Alder St, Camano Island, WA 98282)
-- [Latest Ault Field (KNUW) observation](https://api.weather.gov/stations/KNUW/observations/latest), about 11 miles from the beach, used for a high tide within two hours and for the historical backtest
+- [Ault Field (KNUW) observations](https://api.weather.gov/stations/KNUW/observations), about 11 miles from the beach, used for a high tide within two hours, as the held pressure when Open-Meteo is down, and for the historical backtest
 - [Open-Meteo](https://open-meteo.com/) sea-level pressure at the beach when the NWS grid has none
 - [USGS 12200500](https://waterdata.usgs.gov/monitoring-location/12200500/), Skagit River near Mount Vernon
 - [NWS river forecast MVEW1](https://water.noaa.gov/gauges/mvew1)
