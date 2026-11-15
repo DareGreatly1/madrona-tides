@@ -5,11 +5,10 @@ Wind forecast: api.weather.gov gridpoint forecast at the beach
 coordinates in config.json. If that grid has no wind, the hourly
 forecast at the same point is used, and if that is empty the KNUW
 grid is the labeled fallback.
-Sea-level pressure: the NWS grid pressure series at the beach when it
-is published, otherwise the Open-Meteo sea-level pressure forecast at
-the beach. The latest KNUW observation (also api.weather.gov) is kept
-for the "right now" panel and for a high tide within two hours of
-that observation. The historical backtest still uses the KNUW archive.
+Sea-level pressure: KNUW observations for a high tide within two
+hours, and Open-Meteo for later hours. Open-Meteo retries on HTTP 429
+and timeouts. If Open-Meteo is down, later hours keep the latest KNUW
+pressure. The historical backtest still uses the KNUW archive.
 Skagit River: USGS 12200500 instantaneous gauge height, and the
 National Water Prediction Service forecast for MVEW1 (NWRFC / NWS).
 """
@@ -198,6 +197,51 @@ def fetch_nws_grid(latitude: float, longitude: float) -> dict:
     }
 
 
+def _retry_after_seconds(error: urllib.error.HTTPError) -> float | None:
+    header = error.headers.get("Retry-After") if error.headers else None
+    if not header:
+        return None
+    try:
+        return float(header)
+    except ValueError:
+        return None
+
+
+def get_with_backoff(url: str, opener=None, sleeper=None, attempts: int = 4, timeout: int = 45) -> bytes:
+    """GET that backs off on HTTP 429 and on timeouts.
+
+    Other 5xx responses use the same pauses. A 4xx other than 429 is not retried.
+    Retry-After is honored and capped at 60 seconds.
+    """
+    open_url = opener or urllib.request.urlopen
+    pause = sleeper or time.sleep
+    delays = (5, 15, 30)
+    headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+    last: Exception | None = None
+    for attempt in range(attempts):
+        request = urllib.request.Request(url, headers=headers)
+        try:
+            with open_url(request, timeout=timeout) as response:
+                return response.read()
+        except urllib.error.HTTPError as exc:
+            last = exc
+            retryable = exc.code == 429 or exc.code >= 500
+            if not retryable or attempt == attempts - 1:
+                break
+            wait = delays[min(attempt, len(delays) - 1)]
+            if exc.code == 429:
+                retry_after = _retry_after_seconds(exc)
+                if retry_after is not None:
+                    wait = min(retry_after, 60)
+            pause(wait)
+        except (urllib.error.URLError, TimeoutError, http.client.HTTPException, ConnectionError) as exc:
+            last = exc
+            if attempt == attempts - 1:
+                break
+            pause(delays[min(attempt, len(delays) - 1)])
+    raise FetchError(f"GET failed for {url}: {last}") from last
+
+
 def fetch_station_observation(station_id: str) -> dict | None:
     url = f"https://api.weather.gov/stations/{station_id}/observations/latest"
     try:
@@ -212,6 +256,34 @@ def fetch_station_observation(station_id: str) -> dict | None:
 
 def fetch_knuw_observation() -> dict | None:
     return fetch_station_observation("KNUW")
+
+
+def fetch_station_pressure_observations(station_id: str, limit: int = 30) -> list[tuple[datetime, float]]:
+    """Recent sea-level pressure readings from api.weather.gov station observations.
+
+    Returns (time, millibars) oldest first. An empty list means the collection
+    could not be read or none of the reports included sea-level pressure.
+    """
+    url = f"https://api.weather.gov/stations/{station_id}/observations?limit={limit}"
+    try:
+        payload = get_json(url, headers={"Accept": "application/geo+json"})
+    except FetchError:
+        return []
+    if not isinstance(payload, dict):
+        return []
+    series: list[tuple[datetime, float]] = []
+    for feature in payload.get("features") or []:
+        props = (feature or {}).get("properties") or {}
+        stamp = props.get("timestamp")
+        pressure_mb = quantity_mb(props.get("seaLevelPressure"))
+        if not stamp or pressure_mb is None:
+            continue
+        moment = datetime.fromisoformat(stamp)
+        if moment.tzinfo is None:
+            moment = moment.replace(tzinfo=timezone.utc)
+        series.append((moment, pressure_mb))
+    series.sort(key=lambda item: item[0])
+    return series
 
 
 def fetch_nws_hourly(url: str) -> list[dict]:
@@ -290,7 +362,7 @@ def quantity_mph(quantity: dict | None) -> float | None:
     return to_mph(float(quantity["value"]), quantity.get("unitCode"))
 
 
-def fetch_open_meteo_pressure(latitude: float, longitude: float) -> list[tuple[datetime, float]]:
+def fetch_open_meteo_pressure(latitude: float, longitude: float, opener=None, sleeper=None) -> list[tuple[datetime, float]]:
     params = {
         "latitude": f"{latitude:.4f}",
         "longitude": f"{longitude:.4f}",
@@ -299,7 +371,10 @@ def fetch_open_meteo_pressure(latitude: float, longitude: float) -> list[tuple[d
         "forecast_days": "7",
     }
     url = "https://api.open-meteo.com/v1/forecast?" + urllib.parse.urlencode(params)
-    payload = get_json(url)
+    try:
+        payload = json.loads(get_with_backoff(url, opener=opener, sleeper=sleeper).decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        raise FetchError("Open-Meteo pressure forecast failed") from exc
     if not isinstance(payload, dict) or "hourly" not in payload:
         raise FetchError("Open-Meteo pressure forecast failed")
     hourly = payload["hourly"]

@@ -240,8 +240,52 @@ def resolve_forecast_wind(cfg: dict, beach_grid: dict | None) -> tuple[list, lis
     return speeds, directions, gusts, source, fallback, notes
 
 
-def resolve_forecast_pressure(cfg: dict, beach_grid: dict | None) -> tuple[list, str, str]:
-    """Pressure at the beach grid, then Open-Meteo at the beach, then Open-Meteo at KNUW."""
+def nearest_observation(observations: list[tuple[datetime, float]], moment: datetime, hours: float = 2):
+    """The sea-level pressure reading closest to moment, when it is within `hours`."""
+    if not observations:
+        return None
+    nearest = min(observations, key=lambda item: abs((item[0] - moment).total_seconds()))
+    if abs((nearest[0] - moment).total_seconds()) <= hours * 3600:
+        return nearest
+    return None
+
+
+def pressure_for_tide(
+    when: datetime,
+    observations: list[tuple[datetime, float]],
+    forecast_points: list[tuple[datetime, float]] | None,
+    reference_mb: float,
+    forecast_source: str,
+    observed_source: str,
+    held_source: str,
+    standard_source: str,
+) -> tuple[float, str]:
+    """Choose one pressure for a high tide.
+
+    A reading within two hours is the Ault Field observation. Later hours
+    use the forecast series. If that series is missing, or has no value
+    at this hour, the latest observation is held. With no observation and
+    no forecast, the reference pressure is used and the adjustment is zero.
+    """
+    near = nearest_observation(observations, when)
+    if near is not None:
+        return near[1], observed_source
+    if forecast_points:
+        forecast_mb = fetchers.pressure_at(forecast_points, when)
+        if forecast_mb is not None:
+            return forecast_mb, forecast_source
+    if observations:
+        latest = max(observations, key=lambda item: item[0])
+        return latest[1], held_source
+    return reference_mb, standard_source
+
+
+def load_pressure_forecast(cfg: dict, beach_grid: dict | None) -> tuple[list | None, str, str, str]:
+    """Forecast-hour pressure. Does not raise when Open-Meteo is down.
+
+    Returns (series or None, source label, note, short alert).
+    The alert is empty when a forecast series was found.
+    """
     forecast = cfg["weather"]["forecast"]
     observation = cfg["weather"]["observation"]
     place = forecast["label"]
@@ -252,26 +296,33 @@ def resolve_forecast_pressure(cfg: dict, beach_grid: dict | None) -> tuple[list,
             nws_pressure,
             f"NWS sea-level pressure forecast at {place}",
             f"Sea-level pressure is the NWS grid forecast at {place}.",
+            "",
         )
     try:
         points = fetchers.fetch_open_meteo_pressure(forecast["latitude"], forecast["longitude"])
-    except fetchers.FetchError as exc:
+    except fetchers.FetchError as beach_exc:
         try:
             points = fetchers.fetch_open_meteo_pressure(
                 observation["latitude"], observation["longitude"],
             )
-        except fetchers.FetchError as fallback_exc:
-            raise fetchers.FetchError(
-                f"Sea-level pressure was unavailable at {place} ({exc}) "
-                f"and at {observation['label']} ({fallback_exc})."
-            ) from fallback_exc
+        except fetchers.FetchError as station_exc:
+            return (
+                None,
+                "",
+                (
+                    f"Open-Meteo was unavailable at {place} ({beach_exc}) "
+                    f"and at {observation['label']} ({station_exc})."
+                ),
+                "Open-Meteo was unavailable, so later high tides keep the latest Ault Field pressure.",
+            )
         return (
             points,
             f"Open-Meteo sea-level pressure forecast at {observation['short_label']}",
             (
-                f"Open-Meteo at {place} was unavailable ({exc}). "
+                f"Open-Meteo at {place} was unavailable ({beach_exc}). "
                 f"Sea-level pressure is the Open-Meteo forecast at {observation['label']}."
             ),
+            "",
         )
     address = forecast.get("address") or place
     return (
@@ -281,6 +332,7 @@ def resolve_forecast_pressure(cfg: dict, beach_grid: dict | None) -> tuple[list,
             f"The NWS forecast grid for {place} did not include pressure. "
             f"Sea-level pressure is the Open-Meteo forecast at {address}."
         ),
+        "",
     )
 
 
@@ -327,11 +379,40 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
 
     speeds, directions, gusts, wind_source, wind_grid, wind_notes = resolve_forecast_wind(cfg, beach_grid)
     warnings.extend(wind_notes)
-    pressure_points, forecast_pressure_source, pressure_note = resolve_forecast_pressure(cfg, beach_grid)
-    pressure_note += (
-        f" A high tide within two hours of the latest {observation['short_label']} "
-        f"({observation['station_id']}) observation uses that observed sea-level pressure instead."
-    )
+    pressure_points, forecast_pressure_source, pressure_note, pressure_alert = load_pressure_forecast(cfg, beach_grid)
+    observations = fetchers.fetch_station_pressure_observations(observation["station_id"])
+    if not observations:
+        latest_props = fetchers.fetch_station_observation(observation["station_id"])
+        latest_mb = fetchers.quantity_mb((latest_props or {}).get("seaLevelPressure"))
+        latest_stamp = (latest_props or {}).get("timestamp")
+        if latest_mb is not None and latest_stamp:
+            latest_time = datetime.fromisoformat(latest_stamp)
+            if latest_time.tzinfo is None:
+                latest_time = latest_time.replace(tzinfo=zone)
+            observations = [(latest_time, latest_mb)]
+    reference_mb = float(cfg["pressure"]["reference_mb"])
+    short = observation["short_label"]
+    station_id = observation["station_id"]
+    observed_source = f"{short} ({station_id}) observed sea-level pressure"
+    held_source = f"{short} ({station_id}) observed sea-level pressure, held for this hour"
+    standard_source = f"Standard pressure ({reference_mb:.2f} mb); no pressure adjustment"
+    if pressure_points is None and observations:
+        pressure_note += (
+            f" Forecast hours use the latest {short} ({station_id}) sea-level pressure."
+        )
+    elif pressure_points is None:
+        pressure_alert = (
+            "Pressure readings were unavailable, so this forecast adds no pressure adjustment."
+        )
+        pressure_note = (
+            "Sea-level pressure was unavailable from Ault Field and from Open-Meteo. "
+            "This forecast uses standard pressure and adds no pressure adjustment."
+        )
+    else:
+        pressure_note += (
+            f" A high tide within two hours of an {short} ({station_id}) observation "
+            "uses that observed sea-level pressure."
+        )
 
     knuw = observation_snapshot(
         fetchers.fetch_station_observation(observation["station_id"]),
@@ -394,21 +475,16 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
             wind_dir = 0.0 if wind_dir is None else wind_dir
         gust_mph = None if gust_hit is None else gust_hit[2]
 
-        pressure_mb = None
-        pressure_source = forecast_pressure_source
-        obs_time = knuw.get("time")
-        obs_pressure = knuw.get("pressure_mb")
-        if (
-            obs_time is not None
-            and obs_pressure is not None
-            and abs(when - obs_time) <= timedelta(hours=2)
-        ):
-            pressure_mb = obs_pressure
-            pressure_source = (
-                f"{observation['short_label']} ({observation['station_id']}) observed sea-level pressure"
-            )
-        else:
-            pressure_mb = fetchers.pressure_at(pressure_points, when)
+        pressure_mb, pressure_source = pressure_for_tide(
+            when,
+            observations,
+            pressure_points,
+            reference_mb,
+            forecast_pressure_source,
+            observed_source,
+            held_source,
+            standard_source,
+        )
 
         river_ft = None
         river_source = ""
@@ -462,6 +538,7 @@ def build_tides(cfg: dict, now: datetime) -> tuple[list[dict], dict, list[str]]:
         "station_name": station_name,
         "grid": grid_code(wind_grid),
         "pressure_note": pressure_note,
+        "pressure_alert": pressure_alert,
         "wind_note": wind_source if wind_source.endswith(".") else wind_source + ".",
         "river_note": river_note,
         "knuw": knuw,
@@ -485,6 +562,7 @@ def serializable_conditions(current: dict) -> dict:
         "station_name": current.get("station_name"),
         "grid": current.get("grid"),
         "pressure_note": current.get("pressure_note"),
+        "pressure_alert": current.get("pressure_alert"),
         "wind_note": current.get("wind_note"),
         "river_note": current.get("river_note"),
         "knuw": knuw,
