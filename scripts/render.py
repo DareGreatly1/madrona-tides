@@ -149,6 +149,65 @@ def fmt_short(moment: datetime) -> str:
     return f"{moment.strftime('%b')} {moment.day}, {hour}:{moment.strftime('%M %p')}"
 
 
+def fmt_clock(moment: datetime) -> str:
+    moment = as_pacific(moment)
+    hour = moment.strftime("%I").lstrip("0") or "0"
+    return f"{hour}:{moment.strftime('%M %p')}"
+
+
+def day_peaks(tides: list[dict]) -> list[dict]:
+    """One tide per Pacific calendar day: the highest predicted actual height."""
+    grouped: dict = {}
+    for tide in tides:
+        when = as_pacific(tide["time"])
+        grouped.setdefault(when.date(), []).append(tide)
+    peaks = []
+    for day in sorted(grouped):
+        choices = [tide for tide in grouped[day] if tide.get("predicted_actual_ft") is not None]
+        peak = max(choices, key=lambda tide: tide["predicted_actual_ft"]) if choices else None
+        peaks.append({"date": day, "tide": peak})
+    return peaks
+
+
+def day_row(tides: list[dict], flood_ft: float) -> str:
+    peaks = day_peaks(tides)
+    if not peaks:
+        return ""
+    tiles = []
+    for item in peaks:
+        day = item["date"]
+        tide = item["tide"]
+        weekday = day.strftime("%A")
+        date_label = f"{day.strftime('%b')} {day.day}"
+        if tide is None:
+            tiles.append(
+                f'<article class="day-tile" role="listitem">'
+                f'<p class="day-name">{esc(weekday)}</p>'
+                f'<p class="day-date">{esc(date_label)}</p>'
+                f'<p class="day-height">—</p>'
+                f'<p class="day-time">No estimate</p>'
+                f"</article>"
+            )
+            continue
+        when = as_pacific(tide["time"])
+        actual = tide["predicted_actual_ft"]
+        flood = actual is not None and actual >= flood_ft
+        kind = "day-tile flood" if flood else "day-tile"
+        tiles.append(
+            f'<article class="{kind}" role="listitem">'
+            f'<p class="day-name">{esc(weekday)}</p>'
+            f'<p class="day-date">{esc(date_label)}</p>'
+            f'<p class="day-height">{esc(fmt_ft(actual, 1))}</p>'
+            f'<time class="day-time" datetime="{esc(when.isoformat())}">{esc(fmt_clock(when))}</time>'
+            f"</article>"
+        )
+    return (
+        '<div class="day-row" role="list" aria-label="Highest predicted tide each day">'
+        + "".join(tiles)
+        + "</div>"
+    )
+
+
 def fmt_num(value: float | None, digits: int = 1) -> str:
     if value is None:
         return "—"
@@ -477,6 +536,37 @@ a {{ color: var(--water); }}
 .lede {{ color: var(--muted); margin-top: 0; }}
 .updated {{ margin: 0.15rem 0 0; font-weight: 600; }}
 #refresh-note {{ margin-top: 0.1rem; }}
+.day-row {{
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  margin: 0 0 0.2rem;
+  padding-bottom: 0.35rem;
+}}
+.day-tile {{
+  flex: 0 0 8.75rem;
+  scroll-snap-align: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.7rem 0.75rem 0.65rem;
+}}
+.day-tile.flood {{
+  background: var(--flood-bg);
+  border-color: #efc2a4;
+}}
+.day-name {{ margin: 0; font-weight: 600; }}
+.day-date, .day-time {{ margin: 0; color: var(--muted); font-size: 0.92rem; }}
+.day-height {{
+  margin: 0.35rem 0 0.1rem;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}}
 .card {{
   background: var(--card);
   border: 1px solid var(--line);
@@ -565,6 +655,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
 @media (max-width: 36rem) {{
   dl div {{ grid-template-columns: 1fr; gap: 0.1rem; }}
   .actual, .featured .actual {{ font-size: 2.5rem; }}
+  .day-tile {{ flex-basis: 7.6rem; }}
 }}
 </style>
 </head>
@@ -586,6 +677,7 @@ code {{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; f
 
   <section id="forecast">
     <h2>High tides</h2>
+    {day_row(tides, flood_ft)}
     {''.join(cards) if cards else '<p>No high tides were returned.</p>'}
     <p class="fine">The mark on each bar is the {esc(fmt_ft(flood_ft, 1))} flood flag. The photographed floods were about {esc(fmt_ft(photo_ft, 1))}.</p>
   </section>
