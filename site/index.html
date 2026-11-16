@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Madrona Beach high tide</title>
 <meta name="description" content="A rough daily estimate of the actual high tide at Madrona Beach, Camano Island, Washington.">
-<meta name="forecast-generated-at" content="2026-11-16T00:15:24.633487-08:00">
+<meta name="forecast-generated-at" content="2026-11-16T10:31:42.423883-08:00">
 <style>
 :root {
   --bg: #f3f0e8;
@@ -50,6 +50,37 @@ a { color: var(--water); }
 .lede { color: var(--muted); margin-top: 0; }
 .updated { margin: 0.15rem 0 0; font-weight: 600; }
 #refresh-note { margin-top: 0.1rem; }
+.day-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.55rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  margin: 0 0 0.2rem;
+  padding-bottom: 0.35rem;
+}
+.day-tile {
+  flex: 0 0 8.75rem;
+  scroll-snap-align: start;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.7rem 0.75rem 0.65rem;
+}
+.day-tile.flood {
+  background: var(--flood-bg);
+  border-color: #efc2a4;
+}
+.day-name { margin: 0; font-weight: 600; }
+.day-date, .day-time { margin: 0; color: var(--muted); font-size: 0.92rem; }
+.day-height {
+  margin: 0.35rem 0 0.1rem;
+  font-size: 1.45rem;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
 .card {
   background: var(--card);
   border: 1px solid var(--line);
@@ -138,6 +169,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 @media (max-width: 36rem) {
   dl div { grid-template-columns: 1fr; gap: 0.1rem; }
   .actual, .featured .actual { font-size: 2.5rem; }
+  .day-tile { flex-basis: 7.6rem; }
 }
 </style>
 </head>
@@ -151,7 +183,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   <p class="lede">Madrona Beach, Camano Island, Washington</p>
   <p class="lede">Forecast at Madrona Beach, observations from Ault Field.</p>
   <h1>Actual high tide</h1>
-  <p class="updated">Last updated <time id="last-updated" datetime="2026-11-16T00:15:24.633487-08:00">Monday, November 16 · 12:15 AM PST</time></p>
+  <p class="updated">Last updated <time id="last-updated" datetime="2026-11-16T10:31:42.423883-08:00">Monday, November 16 · 10:31 AM PST</time></p>
   <p class="fine" id="refresh-note">This page checks for the morning update every few minutes.</p>
   <noscript><p class="fine">Reload this page to see a newer forecast.</p></noscript>
   <p class="lede">Astronomical tide plus rough allowances for air pressure, westerly wind, and the Skagit River. Potential flooding above 14 ft.</p>
@@ -159,16 +191,17 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 
   <section id="forecast">
     <h2>High tides</h2>
+    <div class="day-row" role="list" aria-label="Highest predicted tide each day"><article class="day-tile" role="listitem"><p class="day-name">Monday</p><p class="day-date">Nov 16</p><p class="day-height">11.1 ft</p><time class="day-time" datetime="2026-11-16T10:49:00-08:00">10:49 AM</time></article><article class="day-tile" role="listitem"><p class="day-name">Tuesday</p><p class="day-date">Nov 17</p><p class="day-height">11.2 ft</p><time class="day-time" datetime="2026-11-17T11:33:00-08:00">11:33 AM</time></article><article class="day-tile" role="listitem"><p class="day-name">Wednesday</p><p class="day-date">Nov 18</p><p class="day-height">11.4 ft</p><time class="day-time" datetime="2026-11-18T12:10:00-08:00">12:10 PM</time></article><article class="day-tile" role="listitem"><p class="day-name">Thursday</p><p class="day-date">Nov 19</p><p class="day-height">11.3 ft</p><time class="day-time" datetime="2026-11-19T12:44:00-08:00">12:44 PM</time></article><article class="day-tile" role="listitem"><p class="day-name">Friday</p><p class="day-date">Nov 20</p><p class="day-height">11.4 ft</p><time class="day-time" datetime="2026-11-20T13:14:00-08:00">1:14 PM</time></article><article class="day-tile" role="listitem"><p class="day-name">Saturday</p><p class="day-date">Nov 21</p><p class="day-height">11.9 ft</p><time class="day-time" datetime="2026-11-21T13:43:00-08:00">1:43 PM</time></article></div>
     
 <article class="card tide featured">
   <p class="when">Monday, November 16 · 10:49 AM PST</p>
-  <p class="actual">11.13 ft</p>
+  <p class="actual">11.09 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:69.6%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:69.3%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>11.28 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−1.7 in<span>1017.5 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>−2.2 in<span>1018.8 mb · Ault Field (KNUW) observed sea-level pressure</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>12 mph from SSE (150°), gusts 17 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
     <div><dt>Skagit River</dt><dd>0 in<span>12.53 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>about 8.9 of 10 steps showing</dd></div>
@@ -177,45 +210,45 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 
 <article class="card tide">
   <p class="when">Monday, November 16 · 9:20 PM PST</p>
-  <p class="actual">7.33 ft</p>
+  <p class="actual">7.34 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:45.8%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:45.9%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>7.51 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−2.2 in<span>1018.8 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>−2.0 in<span>1018.3 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>2 mph from SSE (150°), gusts 6 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>13.41 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>13.19 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>water below the lowest step (all 10 showing)</dd></div>
   </dl>
 </article>
 
 <article class="card tide">
   <p class="when">Tuesday, November 17 · 11:33 AM PST</p>
-  <p class="actual">11.20 ft</p>
+  <p class="actual">11.22 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:70.0%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:70.1%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>11.27 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−0.9 in<span>1015.5 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>−0.6 in<span>1014.7 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>8 mph from SE (130°), gusts 13 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>13.04 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>12.99 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>about 8.8 of 10 steps showing</dd></div>
   </dl>
 </article>
 
 <article class="card tide">
   <p class="when">Tuesday, November 17 · 10:47 PM PST</p>
-  <p class="actual">7.36 ft</p>
+  <p class="actual">7.42 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:46.0%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:46.4%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>7.27 ft</dd></div>
-    <div><dt>Pressure</dt><dd>+1.1 in<span>1010.4 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>+1.8 in<span>1008.6 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>3 mph from E (90°), gusts 6 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>12.66 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>12.62 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>water below the lowest step (all 10 showing)</dd></div>
   </dl>
 </article>
@@ -230,38 +263,38 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
     <div><dt>NOAA predicted tide</dt><dd>11.34 ft</dd></div>
     <div><dt>Pressure</dt><dd>+0.5 in<span>1012.0 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>3 mph from NE (40°), gusts 5 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>12.38 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>12.29 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>about 8.6 of 10 steps showing</dd></div>
   </dl>
 </article>
 
 <article class="card tide">
   <p class="when">Thursday, November 19 · 12:15 AM PST</p>
-  <p class="actual">7.47 ft</p>
+  <p class="actual">7.46 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:46.7%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:46.6%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>7.49 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−0.4 in<span>1014.2 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>−0.5 in<span>1014.5 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>+0.2 in<span>1 mph from NNW (340°), gusts 3 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>12.23 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>12.13 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>water below the lowest step (all 10 showing)</dd></div>
   </dl>
 </article>
 
 <article class="card tide">
   <p class="when">Thursday, November 19 · 12:44 PM PST</p>
-  <p class="actual">11.36 ft</p>
+  <p class="actual">11.35 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:71.0%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:70.9%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>11.44 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−1.1 in<span>1016.0 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>−1.3 in<span>1016.4 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>+0.2 in<span>1 mph from NNW (330°), gusts 3 mph. Westerly part 1 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>12.12 ft · MVEW1 forecast</span></dd></div>
-    <div><dt>Piling steps</dt><dd>about 8.6 of 10 steps showing</dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>12.01 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Piling steps</dt><dd>about 8.7 of 10 steps showing</dd></div>
   </dl>
 </article>
 
@@ -269,58 +302,58 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   <p class="when">Friday, November 20 · 1:35 AM PST</p>
   <p class="actual">8.04 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:50.2%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:50.3%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>8.18 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−1.7 in<span>1017.5 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>−1.6 in<span>1017.4 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>0 mph from S (180°), gusts 2 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>12.05 ft · MVEW1 forecast</span></dd></div>
-    <div><dt>Piling steps</dt><dd>water below the lowest step (all 10 showing)</dd></div>
-  </dl>
-</article>
-
-<article class="card tide">
-  <p class="when">Friday, November 20 · 1:14 PM PST</p>
-  <p class="actual">11.43 ft</p>
-  <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:71.5%"></span><span class="meter-mark" style="left:87.5%"></span></div>
-  <p class="status quiet">Below the flood flag.</p>
-  <dl>
-    <div><dt>NOAA predicted tide</dt><dd>11.55 ft</dd></div>
-    <div><dt>Pressure</dt><dd>−1.4 in<span>1016.9 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
-    <div><dt>Westerly wind</dt><dd>0 in<span>5 mph from SE (140°), gusts 6 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>11.99 ft · MVEW1 forecast</span></dd></div>
-    <div><dt>Piling steps</dt><dd>about 8.6 of 10 steps showing</dd></div>
-  </dl>
-</article>
-
-<article class="card tide">
-  <p class="when">Saturday, November 21 · 2:42 AM PST</p>
-  <p class="actual">9.28 ft</p>
-  <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:58.0%"></span><span class="meter-mark" style="left:87.5%"></span></div>
-  <p class="status quiet">Below the flood flag.</p>
-  <dl>
-    <div><dt>NOAA predicted tide</dt><dd>9.17 ft</dd></div>
-    <div><dt>Pressure</dt><dd>+1.3 in<span>1009.9 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
-    <div><dt>Westerly wind</dt><dd>0 in<span>3 mph from SE (130°), gusts 7 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
     <div><dt>Skagit River</dt><dd>0 in<span>11.93 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>water below the lowest step (all 10 showing)</dd></div>
   </dl>
 </article>
 
 <article class="card tide">
-  <p class="when">Saturday, November 21 · 1:43 PM PST</p>
-  <p class="actual">11.94 ft</p>
+  <p class="when">Friday, November 20 · 1:14 PM PST</p>
+  <p class="actual">11.40 ft</p>
   <p class="actual-label">predicted actual height</p>
-  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:74.6%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:71.2%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <p class="status quiet">Below the flood flag.</p>
+  <dl>
+    <div><dt>NOAA predicted tide</dt><dd>11.55 ft</dd></div>
+    <div><dt>Pressure</dt><dd>−1.9 in<span>1018.0 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Westerly wind</dt><dd>0 in<span>5 mph from SE (140°), gusts 6 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>11.87 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Piling steps</dt><dd>about 8.6 of 10 steps showing</dd></div>
+  </dl>
+</article>
+
+<article class="card tide">
+  <p class="when">Saturday, November 21 · 2:42 AM PST</p>
+  <p class="actual">9.14 ft</p>
+  <p class="actual-label">predicted actual height</p>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:57.1%"></span><span class="meter-mark" style="left:87.5%"></span></div>
+  <p class="status quiet">Below the flood flag.</p>
+  <dl>
+    <div><dt>NOAA predicted tide</dt><dd>9.17 ft</dd></div>
+    <div><dt>Pressure</dt><dd>−0.4 in<span>1014.2 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Westerly wind</dt><dd>0 in<span>3 mph from SE (130°), gusts 7 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>11.81 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Piling steps</dt><dd>water below the lowest step (all 10 showing)</dd></div>
+  </dl>
+</article>
+
+<article class="card tide">
+  <p class="when">Saturday, November 21 · 1:43 PM PST</p>
+  <p class="actual">11.92 ft</p>
+  <p class="actual-label">predicted actual height</p>
+  <div class="meter" aria-hidden="true"><span class="meter-fill" style="width:74.5%"></span><span class="meter-mark" style="left:87.5%"></span></div>
   <p class="status quiet">Below the flood flag.</p>
   <dl>
     <div><dt>NOAA predicted tide</dt><dd>11.69 ft</dd></div>
-    <div><dt>Pressure</dt><dd>+3.0 in<span>1005.7 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
+    <div><dt>Pressure</dt><dd>+2.8 in<span>1006.0 mb · Open-Meteo sea-level pressure forecast at Madrona Beach</span></dd></div>
     <div><dt>Westerly wind</dt><dd>0 in<span>3 mph from SE (130°), gusts 5 mph. Westerly part 0 mph. NWS forecast at Madrona Beach (SEW 124,98)</span></dd></div>
-    <div><dt>Skagit River</dt><dd>0 in<span>11.89 ft · MVEW1 forecast</span></dd></div>
+    <div><dt>Skagit River</dt><dd>0 in<span>11.78 ft · MVEW1 forecast</span></dd></div>
     <div><dt>Piling steps</dt><dd>about 8.1 of 10 steps showing</dd></div>
   </dl>
 </article>
@@ -331,8 +364,8 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   <section id="now">
     <h2>Right now</h2>
     <div class="card">
-      <p>Observations from Ault Field (KNUW) at Nov 15, 10:53 PM: sea-level pressure 1015.8 mb, wind 15 mph from SE. Closest official station, about 11 miles from the beach.</p>
-      <p>Skagit at Mount Vernon 11.98 ft, 9,300 cfs at Nov 16, 12:00 AM. Flood stage is 28 ft.</p>
+      <p>Observations from Ault Field (KNUW) at Nov 16, 9:53 AM: sea-level pressure — mb, wind calm. Closest official station, about 11 miles from the beach.</p>
+      <p>Skagit at Mount Vernon 12.46 ft, 10,300 cfs at Nov 16, 10:15 AM. Flood stage is 28 ft.</p>
       <p class="fine">The NWS forecast grid for Madrona Beach did not include pressure. Sea-level pressure is the Open-Meteo forecast at 279 Alder St, Camano Island, WA 98282. A high tide within two hours of an Ault Field (KNUW) observation uses that observed sea-level pressure. NWS forecast at Madrona Beach (SEW 124,98). River forecast is National Water Prediction Service MVEW1. Tides outside that forecast use the current USGS reading.</p>
     </div>
   </section>
@@ -443,7 +476,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
       <strong>These are VERY rough estimates and should not be used to reduce your concern for your safety or property.</strong>
       This is for informational purposes only. Do not make decisions based on this data.
     </div>
-    <p>Last updated <time datetime="2026-11-16T00:15:24.633487-08:00">Monday, November 16 · 12:15 AM PST</time>. Not a NOAA product and not a flood warning. The two historical floods are the whole calibration set.</p>
+    <p>Last updated <time datetime="2026-11-16T10:31:42.423883-08:00">Monday, November 16 · 10:31 AM PST</time>. Not a NOAA product and not a flood warning. The two historical floods are the whole calibration set.</p>
   </footer>
 </main>
 
