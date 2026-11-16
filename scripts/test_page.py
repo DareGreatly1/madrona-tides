@@ -317,5 +317,75 @@ class OpenMeteoBackoffTests(unittest.TestCase):
         self.assertEqual(calls["n"], 1)
 
 
+class DayRowTests(unittest.TestCase):
+    def page(self, tides):
+        return render.render_page({
+            "config": model.load_config(),
+            "generated_at": datetime(2026, 11, 16, 8, 0, tzinfo=ZoneInfo("America/Los_Angeles")),
+            "station_name": "Coupeville",
+            "tides": tides,
+            "current": {},
+            "warnings": [],
+            "observations": [],
+            "history": [],
+            "backtest": None,
+        })
+
+    def tide(self, when, actual, predicted=10.0):
+        return {"time": when, "predicted_actual_ft": actual, "predicted_tide_ft": predicted, "passed": False}
+
+    def test_each_day_shows_its_highest_actual_tide(self):
+        pacific = ZoneInfo("America/Los_Angeles")
+        tides = [
+            self.tide(datetime(2026, 11, 16, 4, 20, tzinfo=pacific), 10.2, predicted=10.4),
+            self.tide(datetime(2026, 11, 16, 15, 5, tzinfo=pacific), 11.69, predicted=11.5),
+            self.tide(datetime(2026, 11, 17, 5, 11, tzinfo=pacific), 14.04, predicted=12.0),
+            self.tide(datetime(2026, 11, 17, 16, 0, tzinfo=pacific), 11.1, predicted=13.5),
+        ]
+        peaks = render.day_peaks(tides)
+        self.assertEqual([item["date"].isoformat() for item in peaks], ["2026-11-16", "2026-11-17"])
+        self.assertEqual(peaks[0]["tide"]["predicted_actual_ft"], 11.69)
+        self.assertEqual(peaks[1]["tide"]["predicted_actual_ft"], 14.04)
+
+        page = self.page(tides)
+        self.assertIn('class="day-row"', page)
+        self.assertIn("overflow-x: auto", page)
+        self.assertIn("flex-wrap: nowrap", page)
+        self.assertIn(">Monday<", page)
+        self.assertIn(">Nov 16<", page)
+        self.assertIn(">11.7 ft<", page)
+        self.assertIn(">3:05 PM<", page)
+        self.assertIn(">Tuesday<", page)
+        self.assertIn(">Nov 17<", page)
+        self.assertIn(">14.0 ft<", page)
+        self.assertIn('class="day-tile flood"', page)
+        self.assertEqual(page.count('class="day-tile"'), 1)
+        self.assertLess(page.index('class="day-row"'), page.index('class="card tide"'))
+
+    def test_a_utc_evening_stays_on_the_pacific_day(self):
+        # 07:00 UTC on Nov 17 is 11:00 PM PST on Nov 16.
+        late = datetime(2026, 11, 17, 7, 0, tzinfo=timezone.utc)
+        morning = datetime(2026, 11, 16, 16, 0, tzinfo=timezone.utc)
+        peaks = render.day_peaks([
+            self.tide(morning, 9.0),
+            self.tide(late, 12.25),
+        ])
+        self.assertEqual(len(peaks), 1)
+        self.assertEqual(peaks[0]["date"].isoformat(), "2026-11-16")
+        self.assertEqual(peaks[0]["tide"]["predicted_actual_ft"], 12.25)
+        self.assertEqual(render.fmt_clock(late), "11:00 PM")
+
+    def test_fourteen_feet_is_highlighted_and_just_under_is_not(self):
+        pacific = ZoneInfo("America/Los_Angeles")
+        page = self.page([
+            self.tide(datetime(2026, 11, 16, 15, 0, tzinfo=pacific), 13.94),
+            self.tide(datetime(2026, 11, 17, 15, 0, tzinfo=pacific), 14.0),
+        ])
+        self.assertIn(">13.9 ft<", page)
+        self.assertIn('<p class="day-height">14.0 ft</p>', page)
+        self.assertEqual(page.count('class="day-tile"'), 1)
+        self.assertEqual(page.count('class="day-tile flood"'), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
