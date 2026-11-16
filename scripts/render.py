@@ -197,7 +197,7 @@ def day_row(tides: list[dict], flood_ft: float) -> str:
             f'<article class="{kind}" role="listitem">'
             f'<p class="day-name">{esc(weekday)}</p>'
             f'<p class="day-date">{esc(date_label)}</p>'
-            f'<p class="day-height">{esc(fmt_ft(actual, 1))}</p>'
+            f'<p class="day-height">{esc(fmt_ft(actual))}</p>'
             f'<time class="day-time" datetime="{esc(when.isoformat())}">{esc(fmt_clock(when))}</time>'
             f"</article>"
         )

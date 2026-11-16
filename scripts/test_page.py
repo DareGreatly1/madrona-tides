@@ -353,11 +353,11 @@ class DayRowTests(unittest.TestCase):
         self.assertIn("flex-wrap: nowrap", page)
         self.assertIn(">Monday<", page)
         self.assertIn(">Nov 16<", page)
-        self.assertIn(">11.7 ft<", page)
+        self.assertIn(">11.69 ft<", page)
         self.assertIn(">3:05 PM<", page)
         self.assertIn(">Tuesday<", page)
         self.assertIn(">Nov 17<", page)
-        self.assertIn(">14.0 ft<", page)
+        self.assertIn(">14.04 ft<", page)
         self.assertIn('class="day-tile flood"', page)
         self.assertEqual(page.count('class="day-tile"'), 1)
         self.assertLess(page.index('class="day-row"'), page.index('class="card tide"'))
@@ -381,8 +381,8 @@ class DayRowTests(unittest.TestCase):
             self.tide(datetime(2026, 11, 16, 15, 0, tzinfo=pacific), 13.94),
             self.tide(datetime(2026, 11, 17, 15, 0, tzinfo=pacific), 14.0),
         ])
-        self.assertIn(">13.9 ft<", page)
-        self.assertIn('<p class="day-height">14.0 ft</p>', page)
+        self.assertIn(">13.94 ft<", page)
+        self.assertIn('<p class="day-height">14.00 ft</p>', page)
         self.assertEqual(page.count('class="day-tile"'), 1)
         self.assertEqual(page.count('class="day-tile flood"'), 1)
 
