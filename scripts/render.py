@@ -169,6 +169,21 @@ def day_peaks(tides: list[dict]) -> list[dict]:
     return peaks
 
 
+# Yellow starts here. Red starts at the flood line (14.0 ft in config).
+YELLOW_TIDE_FT = 13.5
+
+
+def tide_band(actual: float | None, flood_ft: float) -> str:
+    """green below 13.5, yellow up to the flood line, red at or above it."""
+    if actual is None:
+        return ""
+    if actual >= flood_ft:
+        return "red"
+    if actual >= YELLOW_TIDE_FT:
+        return "yellow"
+    return "green"
+
+
 def day_row(tides: list[dict], flood_ft: float) -> str:
     peaks = day_peaks(tides)
     if not peaks:
@@ -191,8 +206,8 @@ def day_row(tides: list[dict], flood_ft: float) -> str:
             continue
         when = as_pacific(tide["time"])
         actual = tide["predicted_actual_ft"]
-        flood = actual is not None and actual >= flood_ft
-        kind = "day-tile flood" if flood else "day-tile"
+        band = tide_band(actual, flood_ft)
+        kind = "day-tile level-red flood" if band == "red" else f"day-tile level-{band}"
         tiles.append(
             f'<article class="{kind}" role="listitem">'
             f'<p class="day-name">{esc(weekday)}</p>'
@@ -551,13 +566,19 @@ a {{ color: var(--water); }}
   flex: 0 0 8.75rem;
   scroll-snap-align: start;
   background: var(--card);
-  border: 1px solid var(--line);
+  border: 3px solid var(--line);
   border-radius: 14px;
   padding: 0.7rem 0.75rem 0.65rem;
 }}
-.day-tile.flood {{
+.day-tile.level-green {{
+  border-color: #1f7a3a;
+}}
+.day-tile.level-yellow {{
+  border-color: #c48a00;
+}}
+.day-tile.level-red {{
   background: var(--flood-bg);
-  border-color: #efc2a4;
+  border-color: #b42318;
 }}
 .day-name {{ margin: 0; font-weight: 600; }}
 .day-date, .day-time {{ margin: 0; color: var(--muted); font-size: 0.92rem; }}
