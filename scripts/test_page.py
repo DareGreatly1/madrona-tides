@@ -358,8 +358,8 @@ class DayRowTests(unittest.TestCase):
         self.assertIn(">Tuesday<", page)
         self.assertIn(">Nov 17<", page)
         self.assertIn(">14.04 ft<", page)
-        self.assertIn('class="day-tile flood"', page)
-        self.assertEqual(page.count('class="day-tile"'), 1)
+        self.assertIn('class="day-tile level-green"', page)
+        self.assertIn('class="day-tile level-red flood"', page)
         self.assertLess(page.index('class="day-row"'), page.index('class="card tide"'))
 
     def test_a_utc_evening_stays_on_the_pacific_day(self):
@@ -383,8 +383,27 @@ class DayRowTests(unittest.TestCase):
         ])
         self.assertIn(">13.94 ft<", page)
         self.assertIn('<p class="day-height">14.00 ft</p>', page)
-        self.assertEqual(page.count('class="day-tile"'), 1)
-        self.assertEqual(page.count('class="day-tile flood"'), 1)
+        self.assertIn('class="day-tile level-yellow"', page)
+        self.assertIn('class="day-tile level-red flood"', page)
+
+    def test_tile_border_colors_follow_the_height_boundaries(self):
+        pacific = ZoneInfo("America/Los_Angeles")
+        heights = [13.49, 13.50, 13.99, 14.00]
+        page = self.page([
+            self.tide(datetime(2026, 11, 16 + offset, 15, 0, tzinfo=pacific), height)
+            for offset, height in enumerate(heights)
+        ])
+        self.assertEqual(render.tide_band(13.49, 14.0), "green")
+        self.assertEqual(render.tide_band(13.50, 14.0), "yellow")
+        self.assertEqual(render.tide_band(13.99, 14.0), "yellow")
+        self.assertEqual(render.tide_band(14.00, 14.0), "red")
+        self.assertIn('class="day-tile level-green"', page)
+        self.assertEqual(page.count('class="day-tile level-yellow"'), 2)
+        self.assertIn('class="day-tile level-red flood"', page)
+        self.assertIn("border: 3px solid var(--line)", page)
+        self.assertIn("border-color: #1f7a3a", page)
+        self.assertIn("border-color: #c48a00", page)
+        self.assertIn("border-color: #b42318", page)
 
 
 if __name__ == "__main__":
